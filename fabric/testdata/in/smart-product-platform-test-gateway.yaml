@@ -1,0 +1,81 @@
+apiVersion: zalando.org/v1
+kind: FabricGateway
+metadata:
+  annotations:
+    deployment-time: "2021-08-09T14:27:16Z"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"zalando.org/v1","kind":"FabricGateway","metadata":{"annotations":{"deployment-time":"2021-08-09T14:27:16Z"},"labels":{"application":"smart-product-platform-test","component":"service","deployment-id":"d-sgokz8f17ukn9f5xqjnpf9xuk","environment":"staging","pipeline-id":"l-2dwhxqk9wh3m6ur6ovucqfumec","version":"master-13"},"name":"smart-product-platform-test-gateway","namespace":"default"},"spec":{"paths":{"/apps/*":{"get":{"x-fabric-privileges":["smart-product-platform-test.read"]}},"/hello":{"get":{}},"/issues":{"post":{"x-fabric-privileges":["smart-product-platform-test.write"],"x-fabric-ratelimits":{"default-rate":10,"target":{"stups_some-service-name":100}}}},"/issues/*":{"delete":{"x-fabric-privileges":["smart-product-platform-test.write"],"x-fabric-whitelist":{"service-list":["stups_some-service-name"]}},"get":{"x-fabric-employee-access":{"type":"allow_all"},"x-fabric-privileges":["smart-product-platform-test.read"]},"put":{"x-fabric-static-response":{"body":"{\"title\": \"Issues Updates Not Yet Supported\", \"status\": 501}","headers":{"Content-Type":"application/problem+json"},"status":501}}}},"x-fabric-admins":["assassins"],"x-fabric-service":[{"host":"spp-product-details.smart-product-platform-test.zalan.do","serviceName":"smart-product-platform-test","servicePort":"http"}]}}
+  creationTimestamp: "2021-07-06T12:27:21Z"
+  generation: 1
+  labels:
+    application: smart-product-platform-test
+    component: service
+    deployment-id: d-sgokz8f17ukn9f5xqjnpf9xuk
+    environment: staging
+    pipeline-id: l-2dwhxqk9wh3m6ur6ovucqfumec
+    version: master-13
+  name: smart-product-platform-test-gateway
+  namespace: default
+  resourceVersion: "1271420486"
+  uid: d3827fcf-dbf7-4d68-9e09-27e82003d0db
+spec:
+  paths:
+    /apps/*:
+      get:
+        x-fabric-privileges:
+        - smart-product-platform-test.read
+    /hello:
+      get: {}
+    /issues:
+      post:
+        x-fabric-privileges:
+        - smart-product-platform-test.write
+        x-fabric-ratelimits:
+          default-rate: 10
+          target:
+            stups_some-service-name: 100
+    /issues/*:
+      delete:
+        x-fabric-privileges:
+        - smart-product-platform-test.write
+        x-fabric-whitelist:
+          service-list:
+          - stups_some-service-name
+      get:
+        x-fabric-employee-access:
+          type: allow_all
+        x-fabric-privileges:
+        - smart-product-platform-test.read
+      put:
+        x-fabric-static-response:
+          body: '{"title": "Issues Updates Not Yet Supported", "status": 501}'
+          headers:
+            Content-Type: application/problem+json
+          status: 501
+  x-fabric-admins:
+  - assassins
+  x-fabric-service:
+  - host: spp-product-details.smart-product-platform-test.zalan.do
+    serviceName: smart-product-platform-test
+    servicePort: http
+status:
+  num_owned_ingress: 17
+  observedGeneration: 1
+  owned_ingress_names:
+  - smart-product-platform-test-gateway-post-issues-rl-all
+  - smart-product-platform-test-gateway-delete-issues-id-admins
+  - smart-product-platform-test-gateway-get-issues-id-users-all
+  - smart-product-platform-test-gateway-default-404-route
+  - smart-product-platform-test-gateway-get-apps-id-all
+  - smart-product-platform-test-gateway-delete-issues-id-service-stupssomeservicename
+  - smart-product-platform-test-gateway-post-issues-admins
+  - smart-product-platform-test-gateway-put-issues-id-admins
+  - smart-product-platform-test-gateway-get-hello-all
+  - smart-product-platform-test-gateway-get-issues-id-admins
+  - smart-product-platform-test-gateway-get-hello-admins
+  - smart-product-platform-test-gateway-reject-http-route
+  - smart-product-platform-test-gateway-get-issues-id-all
+  - smart-product-platform-test-gateway-get-apps-id-admins
+  - smart-product-platform-test-gateway-put-issues-id-all
+  - smart-product-platform-test-gateway-delete-issues-id-non-whitelisted
+  - smart-product-platform-test-gateway-post-issues-rl-service-stupssomeservicename

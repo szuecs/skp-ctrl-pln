@@ -1,0 +1,73 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e enableAccessLog(2, 4, 5) -\u003e
+      unverifiedAuditLog(\"https://identity.zalando.com/managed-id\") -\u003e oauthTokeninfoAllScope(\"uid\")
+      -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\",
+      \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(5) \u0026\u0026
+      Path(\"/api/**\") \u0026\u0026 Method(\"GET\") \u0026\u0026 JWTPayloadAllKV(\"https://identity.zalando.com/realm\",
+      \"users\") \u0026\u0026 JWTPayloadAnyKV(\"https://identity.zalando.com/managed-id\",
+      \"vobrien\", \"https://identity.zalando.com/managed-id\", \"aalexandre\", \"https://identity.zalando.com/managed-id\",
+      \"matgonzalez\", \"https://identity.zalando.com/managed-id\", \"xgallegopujo\",
+      \"https://identity.zalando.com/managed-id\", \"wchung\", \"https://identity.zalando.com/managed-id\",
+      \"dhunt\", \"https://identity.zalando.com/managed-id\", \"brcullen\", \"https://identity.zalando.com/managed-id\",
+      \"psuchon\", \"https://identity.zalando.com/managed-id\", \"msung\", \"https://identity.zalando.com/managed-id\",
+      \"ralmeida\", \"https://identity.zalando.com/managed-id\", \"aortega\") \u0026\u0026
+      Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"application":"setanta-category-gatekeeper","controller-uid":"a33746cf-7888-46c2-8dc9-60c003d3127f","deployment-id":"d-2azdig4sinn5uusgktqsvf288n","pipeline-id":"l-2nk7f9gw2i2t6hkqdv6j3v97ve"},"name":"setanta-category-gatekeeper-get-api-wildcard-admins","namespace":"default"},"spec":{"rules":[{"host":"category-gatekeeper.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"setanta-category-gatekeeper","servicePort":"api-port"},"pathType":"ImplementationSpecific"}]}},{"host":"spp-category-gatekeeper-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"setanta-category-gatekeeper","servicePort":"api-port"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> enableAccessLog(2, 4, 5) -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+      -> oauthTokeninfoAllScope("uid") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(5) && Path("/api/**") && Method("GET") &&
+      JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id",
+      "vobrien", "https://identity.zalando.com/managed-id", "aalexandre", "https://identity.zalando.com/managed-id",
+      "matgonzalez", "https://identity.zalando.com/managed-id", "xgallegopujo", "https://identity.zalando.com/managed-id",
+      "wchung", "https://identity.zalando.com/managed-id", "dhunt", "https://identity.zalando.com/managed-id",
+      "brcullen", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id",
+      "msung", "https://identity.zalando.com/managed-id", "ralmeida", "https://identity.zalando.com/managed-id",
+      "aortega") && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2021-10-05T10:19:11Z"
+  generation: 1
+  labels:
+    application: setanta-category-gatekeeper
+    controller-uid: a33746cf-7888-46c2-8dc9-60c003d3127f
+    deployment-id: d-2azdig4sinn5uusgktqsvf288n
+    pipeline-id: l-2nk7f9gw2i2t6hkqdv6j3v97ve
+  name: setanta-category-gatekeeper-get-api-wildcard-admins
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: setanta-category-gatekeeper
+    uid: a33746cf-7888-46c2-8dc9-60c003d3127f
+  resourceVersion: "1380106435"
+  uid: b174a345-89fb-4678-9a2a-3f4ff499d535
+spec:
+  rules:
+  - host: category-gatekeeper.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: setanta-category-gatekeeper
+            port:
+              name: api-port
+        pathType: ImplementationSpecific
+  - host: spp-category-gatekeeper-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: setanta-category-gatekeeper
+            port:
+              name: api-port
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

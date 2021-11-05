@@ -1,0 +1,167 @@
+apiVersion: zalando.org/v1
+kind: FabricGateway
+metadata:
+  annotations:
+    deployment-time: "2021-10-29T07:20:23Z"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"zalando.org/v1","kind":"FabricGateway","metadata":{"annotations":{"deployment-time":"2021-10-29T07:20:23Z"},"labels":{"deployment-id":"d-21eju7ytbm9zrt1rnihrexzppm","pipeline-id":"l-2rrd5x47t59jsji3jbf7z77noc"},"name":"spp-product-search","namespace":"default"},"spec":{"paths":{"/api/product-queries":{"get":{"x-fabric-employee-access":{"type":"allow_all"},"x-fabric-privileges":["uid"],"x-fabric-ratelimits":{"default-rate":300,"period":"minute","target":{"stups_block-order-articles-release":10000,"stups_buying-articles":10000,"stups_care-service":4200,"stups_customs-product-service":2000,"stups_idc-gateway":2000,"stups_logistics-adapter-docdata":4500,"stups_logistics-article-interface":10800,"stups_newhope-squirrel-live":1500,"stups_platform-minuet":10000,"stups_ras":1200,"stups_zoutlets-dojigger":1200}}},"post":{"x-fabric-employee-access":{"type":"allow_all"},"x-fabric-privileges":["uid"],"x-fabric-ratelimits":{"default-rate":100,"period":"minute","target":{"stups_block-order-articles-release":3000,"stups_buying-articles":1200,"stups_platform-minuet":1200}}}},"/api/product-queries/**":{"get":{"x-fabric-employee-access":{"type":"allow_all"},"x-fabric-privileges":["uid"],"x-fabric-ratelimits":{"default-rate":100,"period":"minute","target":{"stups_block-order-articles-release":10000,"stups_buying-articles":10000,"stups_platform-minuet":10000}}}}},"x-external-service-provider":{"hosts":["spp-product-search.smart-product-platform-test.zalan.do","spp-product-search-test.zalandoapis.com"],"stackSetName":"spp-product-search"},"x-fabric-admins":["dgordon","kanli","rlagarferrei","egalligan","bmooney","gcarta","aortega","msung","aalexandre"]}}
+  creationTimestamp: "2019-04-08T12:15:15Z"
+  generation: 35042
+  labels:
+    deployment-id: d-21eju7ytbm9zrt1rnihrexzppm
+    pipeline-id: l-2rrd5x47t59jsji3jbf7z77noc
+  name: spp-product-search
+  namespace: default
+  resourceVersion: "1379978493"
+  uid: f7b886f6-59f7-11e9-8cf4-0af2c39a068a
+spec:
+  paths:
+    /api/product-queries:
+      get:
+        x-fabric-employee-access:
+          type: allow_all
+        x-fabric-privileges:
+        - uid
+        x-fabric-ratelimits:
+          default-rate: 300
+          period: minute
+          target:
+            stups_block-order-articles-release: 10000
+            stups_buying-articles: 10000
+            stups_care-service: 4200
+            stups_customs-product-service: 2000
+            stups_idc-gateway: 2000
+            stups_logistics-adapter-docdata: 4500
+            stups_logistics-article-interface: 10800
+            stups_newhope-squirrel-live: 1500
+            stups_platform-minuet: 10000
+            stups_ras: 1200
+            stups_zoutlets-dojigger: 1200
+      post:
+        x-fabric-employee-access:
+          type: allow_all
+        x-fabric-privileges:
+        - uid
+        x-fabric-ratelimits:
+          default-rate: 100
+          period: minute
+          target:
+            stups_block-order-articles-release: 3000
+            stups_buying-articles: 1200
+            stups_platform-minuet: 1200
+    /api/product-queries/**:
+      get:
+        x-fabric-employee-access:
+          type: allow_all
+        x-fabric-privileges:
+        - uid
+        x-fabric-ratelimits:
+          default-rate: 100
+          period: minute
+          target:
+            stups_block-order-articles-release: 10000
+            stups_buying-articles: 10000
+            stups_platform-minuet: 10000
+  x-external-service-provider:
+    hosts:
+    - spp-product-search.smart-product-platform-test.zalan.do
+    - spp-product-search-test.zalandoapis.com
+    stackSetName: spp-product-search
+  x-fabric-admins:
+  - dgordon
+  - kanli
+  - rlagarferrei
+  - egalligan
+  - bmooney
+  - gcarta
+  - aortega
+  - msung
+  - aalexandre
+status:
+  num_owned_ingress: 84
+  observedGeneration: 35042
+  owned_ingress_names:
+  - spp-product-search-post-api-product-queries-rl-all-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-wildcard-admins-spp-product-search-master-302
+  - spp-product-search-post-api-product-queries-rl-service-stupsblockorderarticlesrelease-spp-product-search-master-301
+  - spp-product-search-default-404-route-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-all-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-admins
+  - spp-product-search-get-api-product-queries-rl-service-stupsbuyingarticles-spp-product-search-master-301
+  - spp-product-search-post-api-product-queries-rl-service-stupsplatformminuet-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupsplatformminuet-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupsidcgateway
+  - spp-product-search-get-api-product-queries-rl-service-stupslogisticsadapterdocdata-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupsnewhopesquirrellive-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupsblockorderarticlesrelease
+  - spp-product-search-post-api-product-queries-rl-service-stupsbuyingarticles
+  - spp-product-search-post-api-product-queries-rl-service-stupsblockorderarticlesrelease-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsblockorderarticlesrelease
+  - spp-product-search-get-api-product-queries-wildcard-admins
+  - spp-product-search-reject-http-route
+  - spp-product-search-reject-http-route-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupslogisticsadapterdocdata-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-all
+  - spp-product-search-get-api-product-queries-wildcard-rl-all-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsplatformminuet-spp-product-search-master-301
+  - spp-product-search-post-api-product-queries-rl-users-all-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupsras-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-wildcard-rl-users-all-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupscareservice-spp-product-search-master-302
+  - spp-product-search-post-api-product-queries-rl-all-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupsnewhopesquirrellive-spp-product-search-master-302
+  - spp-product-search-post-api-product-queries-rl-service-stupsplatformminuet-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupslogisticsadapterdocdata
+  - spp-product-search-get-api-product-queries-admins-spp-product-search-master-301
+  - spp-product-search-post-api-product-queries-rl-users-all
+  - spp-product-search-get-api-product-queries-wildcard-rl-all-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupslogisticsarticleinterface-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupslogisticsarticleinterface
+  - spp-product-search-get-api-product-queries-rl-service-stupsblockorderarticlesrelease-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupsidcgateway-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupslogisticsarticleinterface-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupszoutletsdojigger-spp-product-search-master-302
+  - spp-product-search-post-api-product-queries-rl-users-all-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupscareservice
+  - spp-product-search-default-404-route-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-wildcard-rl-users-all-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsplatformminuet-spp-product-search-master-302
+  - spp-product-search-reject-http-route-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupsblockorderarticlesrelease-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsplatformminuet
+  - spp-product-search-post-api-product-queries-rl-service-stupsbuyingarticles-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsblockorderarticlesrelease-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-users-all-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupsidcgateway-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-admins-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-all-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupszoutletsdojigger-spp-product-search-master-301
+  - spp-product-search-post-api-product-queries-admins-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-wildcard-rl-all
+  - spp-product-search-post-api-product-queries-rl-service-stupsplatformminuet
+  - spp-product-search-get-api-product-queries-rl-service-stupszoutletsdojigger
+  - spp-product-search-get-api-product-queries-rl-service-stupsbuyingarticles
+  - spp-product-search-get-api-product-queries-rl-service-stupsplatformminuet
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsblockorderarticlesrelease-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupsras
+  - spp-product-search-post-api-product-queries-admins
+  - spp-product-search-post-api-product-queries-admins-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsbuyingarticles-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupsbuyingarticles-spp-product-search-master-302
+  - spp-product-search-post-api-product-queries-rl-service-stupsbuyingarticles-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupscustomsproductservice-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupsnewhopesquirrellive
+  - spp-product-search-get-api-product-queries-wildcard-rl-users-all
+  - spp-product-search-get-api-product-queries-rl-service-stupsplatformminuet-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-users-all
+  - spp-product-search-get-api-product-queries-wildcard-admins-spp-product-search-master-301
+  - spp-product-search-default-404-route
+  - spp-product-search-get-api-product-queries-rl-users-all-spp-product-search-master-302
+  - spp-product-search-post-api-product-queries-rl-service-stupsblockorderarticlesrelease
+  - spp-product-search-post-api-product-queries-rl-all
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsbuyingarticles
+  - spp-product-search-get-api-product-queries-rl-service-stupsras-spp-product-search-master-302
+  - spp-product-search-get-api-product-queries-rl-service-stupscustomsproductservice
+  - spp-product-search-get-api-product-queries-rl-service-stupscareservice-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-wildcard-rl-service-stupsbuyingarticles-spp-product-search-master-301
+  - spp-product-search-get-api-product-queries-rl-service-stupscustomsproductservice-spp-product-search-master-301

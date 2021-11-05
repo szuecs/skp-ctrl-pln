@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-routes":"PathSubtree(\"/\")
+      \u0026\u0026 Header(\"X-Forwarded-Proto\", \"http\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e status(400) -\u003e inlineContent(\"{\\\"title\\\":\\\"Gateway Rejected\\\",\\\"status\\\":400,\\\"detail\\\":\\\"TLS
+      is required\\\",\\\"type\\\":\\\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\\\"}\")
+      -\u003e \u003cshunt\u003e"},"labels":{"controller-uid":"3802c424-e375-11e9-9959-0a1d439efe60","deployment-id":"d-a4z9cmmcah7jmdg3z8qmcza5a","pipeline-id":"l-hm6diyu6r83qkb7phpzcao5cz"},"name":"spp-product-search-rds-reject-http-route","namespace":"default"},"spec":{"rules":[{"host":"spp-product-search-rds.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-product-search-rds","servicePort":"http"},"pathType":"ImplementationSpecific"}]}},{"host":"spp-product-search-rds-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"spp-product-search-rds","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-routes: PathSubtree("/") && Header("X-Forwarded-Proto", "http")
+      -> unverifiedAuditLog("sub") -> status(400) -> inlineContent("{\"title\":\"Gateway
+      Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+      -> <shunt>
+  creationTimestamp: "2019-09-30T11:27:00Z"
+  generation: 1
+  labels:
+    controller-uid: 3802c424-e375-11e9-9959-0a1d439efe60
+    deployment-id: d-a4z9cmmcah7jmdg3z8qmcza5a
+    pipeline-id: l-hm6diyu6r83qkb7phpzcao5cz
+  name: spp-product-search-rds-reject-http-route
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-product-search-rds
+    uid: 3802c424-e375-11e9-9959-0a1d439efe60
+  resourceVersion: "1357490009"
+  uid: 3810c8a8-e375-11e9-9a79-0225683d17cc
+spec:
+  rules:
+  - host: spp-product-search-rds.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-search-rds
+            port:
+              name: http
+        pathType: ImplementationSpecific
+  - host: spp-product-search-rds-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-search-rds
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

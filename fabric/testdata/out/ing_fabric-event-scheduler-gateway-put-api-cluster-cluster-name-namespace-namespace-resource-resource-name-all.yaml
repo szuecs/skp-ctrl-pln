@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e oauthTokeninfoAllScope(\"uid\", \"fabric-event-scheduler.write\") -\u003e
+      flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\", \"scope\",
+      \"realm\")","zalando.org/skipper-predicate":"Weight(3) \u0026\u0026 Path(\"/api/cluster/:cluster_name/namespace/:namespace/resource/:resource_name\")
+      \u0026\u0026 Method(\"PUT\") \u0026\u0026 Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"eedb8509-1ee8-11e9-b78f-0a57a5a15272","deployment-id":"d-8dmn6j9jdg33ypaeqm2jv7v2d","pipeline-id":"l-26s8kqzdng1pty8usuum69sw4p"},"name":"fabric-event-scheduler-gateway-put-api-cluster-cluster-name-namespace-namespace-resource-resource-name-all","namespace":"default"},"spec":{"rules":[{"host":"fabric-event-streams.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"fabric-event-scheduler","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> unverifiedAuditLog("sub") -> oauthTokeninfoAllScope("uid",
+      "fabric-event-scheduler.write") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(3) && Path("/api/cluster/:cluster_name/namespace/:namespace/resource/:resource_name")
+      && Method("PUT") && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2020-03-11T09:27:32Z"
+  generation: 1
+  labels:
+    controller-uid: eedb8509-1ee8-11e9-b78f-0a57a5a15272
+    deployment-id: d-8dmn6j9jdg33ypaeqm2jv7v2d
+    pipeline-id: l-26s8kqzdng1pty8usuum69sw4p
+  name: fabric-event-scheduler-gateway-put-api-cluster-cluster-name-namespace-namespace-resource-resource-name-all
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: fabric-event-scheduler-gateway
+    uid: eedb8509-1ee8-11e9-b78f-0a57a5a15272
+  resourceVersion: "1357488651"
+  uid: aed8bb4f-1f3d-45b7-9467-4363e0131aeb
+spec:
+  rules:
+  - host: fabric-event-streams.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: fabric-event-scheduler
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

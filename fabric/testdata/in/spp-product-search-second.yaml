@@ -1,0 +1,46 @@
+apiVersion: zalando.org/v1
+kind: FabricGateway
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"zalando.org/v1","kind":"FabricGateway","metadata":{"annotations":{},"labels":{"deployment-id":"d-22bdw3hrdcuoo7xpajv9ftc9ae"},"name":"spp-product-search-second","namespace":"default"},"spec":{"paths":{"/api/product-queries":{"get":{"x-fabric-privileges":["uid"]},"post":{"x-fabric-privileges":["uid"]}}},"x-fabric-admins":["dgordon","abaquero","pslowinski","kanli","rlagarferrei","jocarroll"],"x-fabric-service":[{"host":"spp-product-search-second.smart-product-platform-test.zalan.do","serviceName":"spp-product-search-second","servicePort":"http"},{"host":"spp-product-search-second-test.zalandoapis.com","serviceName":"spp-product-search-second"}]}}
+  creationTimestamp: "2019-05-14T12:57:22Z"
+  generation: 34737
+  labels:
+    deployment-id: d-22bdw3hrdcuoo7xpajv9ftc9ae
+  name: spp-product-search-second
+  namespace: default
+  resourceVersion: "252868132"
+  uid: d06ca474-7647-11e9-912e-0a13213f0924
+spec:
+  paths:
+    /api/product-queries:
+      get:
+        x-fabric-privileges:
+        - uid
+      post:
+        x-fabric-privileges:
+        - uid
+  x-fabric-admins:
+  - dgordon
+  - abaquero
+  - pslowinski
+  - kanli
+  - rlagarferrei
+  - jocarroll
+  x-fabric-service:
+  - host: spp-product-search-second.smart-product-platform-test.zalan.do
+    serviceName: spp-product-search-second
+    servicePort: http
+  - host: spp-product-search-second-test.zalandoapis.com
+    serviceName: spp-product-search-second
+status:
+  num_owned_ingress: 6
+  observedGeneration: 34737
+  owned_ingress_names:
+  - spp-product-search-second-get-api-product-queries-all
+  - spp-product-search-second-post-api-product-queries-admins
+  - spp-product-search-second-default-404-route
+  - spp-product-search-second-post-api-product-queries-all
+  - spp-product-search-second-get-api-product-queries-admins
+  - spp-product-search-second-reject-http-route

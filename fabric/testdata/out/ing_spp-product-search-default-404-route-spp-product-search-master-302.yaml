@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-routes":"PathSubtree(\"/\")
+      -\u003e oauthTokeninfoAllScope(\"uid\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e status(404) -\u003e inlineContent(\"{\\\"title\\\":\\\"Gateway Rejected\\\",\\\"status\\\":404,\\\"detail\\\":\\\"Gateway
+      Route Not Matched\\\"}\") -\u003e \u003cshunt\u003e"},"labels":{"controller-uid":"f7b886f6-59f7-11e9-8cf4-0af2c39a068a","deployment-id":"d-21eju7ytbm9zrt1rnihrexzppm","pipeline-id":"l-2rrd5x47t59jsji3jbf7z77noc"},"name":"spp-product-search-default-404-route-spp-product-search-master-302","namespace":"default"},"spec":{"rules":[{"host":"spp-product-search-master-302.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-product-search-master-302","servicePort":8080},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-routes: PathSubtree("/") -> oauthTokeninfoAllScope("uid")
+      -> unverifiedAuditLog("sub") -> status(404) -> inlineContent("{\"title\":\"Gateway
+      Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}") -> <shunt>
+  creationTimestamp: "2021-10-29T07:20:56Z"
+  generation: 1
+  labels:
+    controller-uid: f7b886f6-59f7-11e9-8cf4-0af2c39a068a
+    deployment-id: d-21eju7ytbm9zrt1rnihrexzppm
+    pipeline-id: l-2rrd5x47t59jsji3jbf7z77noc
+  name: spp-product-search-default-404-route-spp-product-search-master-302
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-product-search
+    uid: f7b886f6-59f7-11e9-8cf4-0af2c39a068a
+  resourceVersion: "1379942025"
+  uid: 5725992c-089a-4bed-bb57-977352513f48
+spec:
+  rules:
+  - host: spp-product-search-master-302.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-search-master-302
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

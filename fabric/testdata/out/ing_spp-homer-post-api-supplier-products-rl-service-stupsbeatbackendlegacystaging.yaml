@@ -1,0 +1,95 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/backend-weights":"{\"spp-homer-master-367\":0.0,\"spp-homer-master-368\":100.0}","zalando.org/skipper-filter":"inlineContentIfStatus(429,
+      \"{\\\"title\\\": \\\"Rate limit exceeded\\\", \\\"detail\\\": \\\"See the retry-after
+      header for how many seconds to wait before retrying.\\\", \\\"status\\\": 429}\",
+      \"application/problem+json\") -\u003e oauthTokeninfoAnyKV(\"realm\", \"/services\",
+      \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"sub\") -\u003e oauthTokeninfoAllScope(\"uid\",
+      \"spp-homer.write\") -\u003e clusterClientRatelimit(\"spp-homer_api-supplier-products_POST_stups_beat-backend-legacy-staging\",
+      10000, \"1m\", \"Authorization\") -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\",
+      \"uid\", \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(4) \u0026\u0026
+      Path(\"/api/supplier-products\") \u0026\u0026 Method(\"POST\") \u0026\u0026
+      JWTPayloadAllKV(\"sub\", \"stups_beat-backend-legacy-staging\") \u0026\u0026
+      Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"3929699d-cba0-11e8-90e2-0618dc6898fa","deployment-id":"d-nq71pi3pjq8siqfx3i5toz322","pipeline-id":"l-o49bo3978wd8mgk5o73i8aim6"},"name":"spp-homer-post-api-supplier-products-rl-service-stupsbeatbackendlegacystaging","namespace":"default"},"spec":{"rules":[{"host":"spp-homer.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-homer-master-367","servicePort":8080},"pathType":"ImplementationSpecific"},{"backend":{"serviceName":"spp-homer-master-368","servicePort":8080},"pathType":"ImplementationSpecific"}]}},{"host":"spp-homer-api.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-homer-master-367","servicePort":8080},"pathType":"ImplementationSpecific"},{"backend":{"serviceName":"spp-homer-master-368","servicePort":8080},"pathType":"ImplementationSpecific"}]}},{"host":"spp-supplier-data-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"spp-homer-master-367","servicePort":8080},"pathType":"ImplementationSpecific"},{"backend":{"serviceName":"spp-homer-master-368","servicePort":8080},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/backend-weights: '{"spp-homer-master-367":0.0,"spp-homer-master-368":100.0}'
+    zalando.org/skipper-filter: 'inlineContentIfStatus(429, "{\"title\": \"Rate limit
+      exceeded\", \"detail\": \"See the retry-after header for how many seconds to
+      wait before retrying.\", \"status\": 429}", "application/problem+json") -> oauthTokeninfoAnyKV("realm",
+      "/services", "realm", "/employees") -> unverifiedAuditLog("sub") -> oauthTokeninfoAllScope("uid",
+      "spp-homer.write") -> clusterClientRatelimit("spp-homer_api-supplier-products_POST_stups_beat-backend-legacy-staging",
+      10000, "1m", "Authorization") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")'
+    zalando.org/skipper-predicate: Weight(4) && Path("/api/supplier-products") &&
+      Method("POST") && JWTPayloadAllKV("sub", "stups_beat-backend-legacy-staging")
+      && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2021-03-25T13:37:34Z"
+  generation: 250
+  labels:
+    controller-uid: 3929699d-cba0-11e8-90e2-0618dc6898fa
+    deployment-id: d-nq71pi3pjq8siqfx3i5toz322
+    pipeline-id: l-o49bo3978wd8mgk5o73i8aim6
+  name: spp-homer-post-api-supplier-products-rl-service-stupsbeatbackendlegacystaging
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-homer
+    uid: 3929699d-cba0-11e8-90e2-0618dc6898fa
+  resourceVersion: "1379152626"
+  uid: 48efdc9d-2086-4aed-b15d-793f811bf41c
+spec:
+  rules:
+  - host: spp-homer.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-homer-master-367
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: spp-homer-master-368
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+  - host: spp-homer-api.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-homer-master-367
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: spp-homer-master-368
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+  - host: spp-supplier-data-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-homer-master-367
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: spp-homer-master-368
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

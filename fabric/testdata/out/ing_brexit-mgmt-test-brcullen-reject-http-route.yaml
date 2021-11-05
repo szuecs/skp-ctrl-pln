@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-routes":"PathSubtree(\"/\")
+      \u0026\u0026 Header(\"X-Forwarded-Proto\", \"http\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e status(400) -\u003e inlineContent(\"{\\\"title\\\":\\\"Gateway Rejected\\\",\\\"status\\\":400,\\\"detail\\\":\\\"TLS
+      is required\\\",\\\"type\\\":\\\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\\\"}\")
+      -\u003e \u003cshunt\u003e"},"labels":{"controller-uid":"cacbbde2-a986-4e38-a927-397b31cbbc92","deployment-id":"d-6ma81srcrsjpk92rua7mznvmy","pipeline-id":"l-2nu689sag7uyvsxv4f8yc5dty1"},"name":"brexit-mgmt-test-brcullen-reject-http-route","namespace":"default"},"spec":{"rules":[{"host":"brexit-mgmt-test-brcullen.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"brexit-mgmt-test-brcullen","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-routes: PathSubtree("/") && Header("X-Forwarded-Proto", "http")
+      -> unverifiedAuditLog("sub") -> status(400) -> inlineContent("{\"title\":\"Gateway
+      Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+      -> <shunt>
+  creationTimestamp: "2021-05-05T15:09:38Z"
+  generation: 1
+  labels:
+    controller-uid: cacbbde2-a986-4e38-a927-397b31cbbc92
+    deployment-id: d-6ma81srcrsjpk92rua7mznvmy
+    pipeline-id: l-2nu689sag7uyvsxv4f8yc5dty1
+  name: brexit-mgmt-test-brcullen-reject-http-route
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: brexit-mgmt-test-brcullen
+    uid: cacbbde2-a986-4e38-a927-397b31cbbc92
+  resourceVersion: "1364414639"
+  uid: 9d27ded1-0ea6-4c9e-801d-adf4cb79e2f9
+spec:
+  rules:
+  - host: brexit-mgmt-test-brcullen.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: brexit-mgmt-test-brcullen
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

@@ -1,0 +1,34 @@
+apiVersion: zalando.org/v1
+kind: FabricGateway
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"zalando.org/v1","kind":"FabricGateway","metadata":{"annotations":{},"labels":{"deployment-id":"d-wzg528roit197z6tryudarwfn"},"name":"sentiment-analysis","namespace":"default"},"spec":{"paths":{"/":{"get":{"x-fabric-privileges":["uid"]}}},"x-fabric-admins":["pslowinski","rlagarferrei"],"x-fabric-service":[{"host":"sentiment-analysis.smart-product-platform-test.zalan.do","serviceName":"sentiment-analysis"}]}}
+  creationTimestamp: "2018-12-18T09:53:15Z"
+  generation: 30354
+  labels:
+    deployment-id: d-wzg528roit197z6tryudarwfn
+  name: sentiment-analysis
+  namespace: default
+  resourceVersion: "252868249"
+  uid: bd3196ef-02aa-11e9-a425-02d53b6e2814
+spec:
+  paths:
+    /:
+      get:
+        x-fabric-privileges:
+        - uid
+  x-fabric-admins:
+  - pslowinski
+  - rlagarferrei
+  x-fabric-service:
+  - host: sentiment-analysis.smart-product-platform-test.zalan.do
+    serviceName: sentiment-analysis
+status:
+  num_owned_ingress: 4
+  observedGeneration: 30354
+  owned_ingress_names:
+  - sentiment-analysis-default-404-route
+  - sentiment-analysis-get--admins
+  - sentiment-analysis-get--all
+  - sentiment-analysis-reject-http-route

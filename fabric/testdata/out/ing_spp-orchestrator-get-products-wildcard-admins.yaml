@@ -1,0 +1,78 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e enableAccessLog(2, 4, 5) -\u003e
+      unverifiedAuditLog(\"https://identity.zalando.com/managed-id\") -\u003e oauthTokeninfoAllScope(\"uid\")
+      -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\",
+      \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(5) \u0026\u0026
+      Path(\"/products/**\") \u0026\u0026 Method(\"GET\") \u0026\u0026 JWTPayloadAllKV(\"https://identity.zalando.com/realm\",
+      \"users\") \u0026\u0026 JWTPayloadAnyKV(\"https://identity.zalando.com/managed-id\",
+      \"pcamposdesiq\", \"https://identity.zalando.com/managed-id\", \"aalexandre\",
+      \"https://identity.zalando.com/managed-id\", \"jocarroll\", \"https://identity.zalando.com/managed-id\",
+      \"matgonzalez\", \"https://identity.zalando.com/managed-id\", \"gwaldmann\",
+      \"https://identity.zalando.com/managed-id\", \"rtawari\", \"https://identity.zalando.com/managed-id\",
+      \"ophelan\", \"https://identity.zalando.com/managed-id\", \"psuchon\", \"https://identity.zalando.com/managed-id\",
+      \"jwawszczak\", \"https://identity.zalando.com/managed-id\", \"ashaikh\", \"https://identity.zalando.com/managed-id\",
+      \"dlopes\", \"https://identity.zalando.com/managed-id\", \"vkocherga\", \"https://identity.zalando.com/managed-id\",
+      \"dmiaroslavsk\", \"https://identity.zalando.com/managed-id\", \"sborzenko\",
+      \"https://identity.zalando.com/managed-id\", \"aalvarez\") \u0026\u0026 Header(\"X-Forwarded-Proto\",
+      \"https\")"},"labels":{"application":"spp-orchestrator","controller-uid":"dc9807f1-0b50-4f99-a39c-f5d5c06b7898","deployment-id":"d-2bo4qiirv1ued8q7ebradue32g","pipeline-id":"l-efn499u5h9xkb6bbh4eev4ytp"},"name":"spp-orchestrator-get-products-wildcard-admins","namespace":"default"},"spec":{"rules":[{"host":"spp-orchestrator.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-orchestrator","servicePort":"http"},"pathType":"ImplementationSpecific"}]}},{"host":"spp-orchestrator-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"spp-orchestrator","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> enableAccessLog(2, 4, 5) -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+      -> oauthTokeninfoAllScope("uid") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(5) && Path("/products/**") && Method("GET")
+      && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id",
+      "pcamposdesiq", "https://identity.zalando.com/managed-id", "aalexandre", "https://identity.zalando.com/managed-id",
+      "jocarroll", "https://identity.zalando.com/managed-id", "matgonzalez", "https://identity.zalando.com/managed-id",
+      "gwaldmann", "https://identity.zalando.com/managed-id", "rtawari", "https://identity.zalando.com/managed-id",
+      "ophelan", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id",
+      "jwawszczak", "https://identity.zalando.com/managed-id", "ashaikh", "https://identity.zalando.com/managed-id",
+      "dlopes", "https://identity.zalando.com/managed-id", "vkocherga", "https://identity.zalando.com/managed-id",
+      "dmiaroslavsk", "https://identity.zalando.com/managed-id", "sborzenko", "https://identity.zalando.com/managed-id",
+      "aalvarez") && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2021-02-22T15:58:37Z"
+  generation: 1
+  labels:
+    application: spp-orchestrator
+    controller-uid: dc9807f1-0b50-4f99-a39c-f5d5c06b7898
+    deployment-id: d-2bo4qiirv1ued8q7ebradue32g
+    pipeline-id: l-efn499u5h9xkb6bbh4eev4ytp
+  name: spp-orchestrator-get-products-wildcard-admins
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-orchestrator
+    uid: dc9807f1-0b50-4f99-a39c-f5d5c06b7898
+  resourceVersion: "1357489186"
+  uid: f2004433-6819-40a0-8514-6f116d750e54
+spec:
+  rules:
+  - host: spp-orchestrator.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-orchestrator
+            port:
+              name: http
+        pathType: ImplementationSpecific
+  - host: spp-orchestrator-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-orchestrator
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

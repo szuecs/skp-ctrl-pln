@@ -1,0 +1,69 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e oauthTokeninfoAllScope(\"uid\", \"enrichment-rules-store.rules.write\")
+      -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\",
+      \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(4) \u0026\u0026
+      Path(\"/api/**\") \u0026\u0026 Method(\"POST\") \u0026\u0026 JWTPayloadAllKV(\"sub\",
+      \"stups_category-tree-ui\") \u0026\u0026 Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"f85d15a7-8d9a-4f3f-a3d2-160c41ac6a6d","deployment-id":"d-qpkcoa3a6yvf5wpdofjfgnob7","pipeline-id":"l-7qphde1bibps8wfqd27vr3cq7"},"name":"setanta-rules-staging-post-api-wildcard-service-stupscategorytreeui","namespace":"default"},"spec":{"rules":[{"host":"setanta-rules-staging.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"setanta-rules-staging","servicePort":"http"},"pathType":"ImplementationSpecific"}]}},{"host":"spp-rules-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"setanta-rules-staging","servicePort":"http"},"pathType":"ImplementationSpecific"}]}},{"host":"rules.setanta-staging.zalan.do","http":{"paths":[{"backend":{"serviceName":"setanta-rules-staging","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> unverifiedAuditLog("sub") -> oauthTokeninfoAllScope("uid",
+      "enrichment-rules-store.rules.write") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(4) && Path("/api/**") && Method("POST")
+      && JWTPayloadAllKV("sub", "stups_category-tree-ui") && Header("X-Forwarded-Proto",
+      "https")
+  creationTimestamp: "2020-01-06T11:15:24Z"
+  generation: 1
+  labels:
+    controller-uid: f85d15a7-8d9a-4f3f-a3d2-160c41ac6a6d
+    deployment-id: d-qpkcoa3a6yvf5wpdofjfgnob7
+    pipeline-id: l-7qphde1bibps8wfqd27vr3cq7
+  name: setanta-rules-staging-post-api-wildcard-service-stupscategorytreeui
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: setanta-rules-staging
+    uid: f85d15a7-8d9a-4f3f-a3d2-160c41ac6a6d
+  resourceVersion: "1361160695"
+  uid: 8777b586-44de-4c86-bc18-067bbaf257ce
+spec:
+  rules:
+  - host: setanta-rules-staging.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: setanta-rules-staging
+            port:
+              name: http
+        pathType: ImplementationSpecific
+  - host: spp-rules-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: setanta-rules-staging
+            port:
+              name: http
+        pathType: ImplementationSpecific
+  - host: rules.setanta-staging.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: setanta-rules-staging
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

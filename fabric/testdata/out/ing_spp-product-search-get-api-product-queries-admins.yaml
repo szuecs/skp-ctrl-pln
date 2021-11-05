@@ -1,0 +1,83 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/backend-weights":"{\"spp-product-search-master-301\":0.0,\"spp-product-search-master-302\":100.0}","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e enableAccessLog(2, 4, 5) -\u003e
+      unverifiedAuditLog(\"https://identity.zalando.com/managed-id\") -\u003e oauthTokeninfoAllScope(\"uid\")
+      -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\",
+      \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(5) \u0026\u0026
+      Path(\"/api/product-queries\") \u0026\u0026 Method(\"GET\") \u0026\u0026 JWTPayloadAllKV(\"https://identity.zalando.com/realm\",
+      \"users\") \u0026\u0026 JWTPayloadAnyKV(\"https://identity.zalando.com/managed-id\",
+      \"aalexandre\", \"https://identity.zalando.com/managed-id\", \"gcarta\", \"https://identity.zalando.com/managed-id\",
+      \"kanli\", \"https://identity.zalando.com/managed-id\", \"bmooney\", \"https://identity.zalando.com/managed-id\",
+      \"egalligan\", \"https://identity.zalando.com/managed-id\", \"rlagarferrei\",
+      \"https://identity.zalando.com/managed-id\", \"msung\", \"https://identity.zalando.com/managed-id\",
+      \"dgordon\", \"https://identity.zalando.com/managed-id\", \"aortega\") \u0026\u0026
+      Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"f7b886f6-59f7-11e9-8cf4-0af2c39a068a","deployment-id":"d-21eju7ytbm9zrt1rnihrexzppm","pipeline-id":"l-2rrd5x47t59jsji3jbf7z77noc"},"name":"spp-product-search-get-api-product-queries-admins","namespace":"default"},"spec":{"rules":[{"host":"spp-product-search.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-product-search-master-301","servicePort":8080},"pathType":"ImplementationSpecific"},{"backend":{"serviceName":"spp-product-search-master-302","servicePort":8080},"pathType":"ImplementationSpecific"}]}},{"host":"spp-product-search-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"spp-product-search-master-301","servicePort":8080},"pathType":"ImplementationSpecific"},{"backend":{"serviceName":"spp-product-search-master-302","servicePort":8080},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/backend-weights: '{"spp-product-search-master-301":0.0,"spp-product-search-master-302":100.0}'
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> enableAccessLog(2, 4, 5) -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+      -> oauthTokeninfoAllScope("uid") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(5) && Path("/api/product-queries") && Method("GET")
+      && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id",
+      "aalexandre", "https://identity.zalando.com/managed-id", "gcarta", "https://identity.zalando.com/managed-id",
+      "kanli", "https://identity.zalando.com/managed-id", "bmooney", "https://identity.zalando.com/managed-id",
+      "egalligan", "https://identity.zalando.com/managed-id", "rlagarferrei", "https://identity.zalando.com/managed-id",
+      "msung", "https://identity.zalando.com/managed-id", "dgordon", "https://identity.zalando.com/managed-id",
+      "aortega") && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2019-06-17T13:45:57Z"
+  generation: 219
+  labels:
+    controller-uid: f7b886f6-59f7-11e9-8cf4-0af2c39a068a
+    deployment-id: d-21eju7ytbm9zrt1rnihrexzppm
+    pipeline-id: l-2rrd5x47t59jsji3jbf7z77noc
+  name: spp-product-search-get-api-product-queries-admins
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-product-search
+    uid: f7b886f6-59f7-11e9-8cf4-0af2c39a068a
+  resourceVersion: "1379978484"
+  uid: 3c59c590-9106-11e9-a3f0-065b20c8b844
+spec:
+  rules:
+  - host: spp-product-search.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-search-master-301
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: spp-product-search-master-302
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+  - host: spp-product-search-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-search-master-301
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: spp-product-search-master-302
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

@@ -1,0 +1,60 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e oauthTokeninfoAllScope(\"uid\") -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\",
+      \"uid\", \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(4) \u0026\u0026
+      Path(\"/swagger.yaml\") \u0026\u0026 Method(\"GET\") \u0026\u0026 JWTPayloadAllKV(\"sub\",
+      \"stups_planetexpress-local-token-retriever\") \u0026\u0026 Header(\"X-Forwarded-Proto\",
+      \"https\")"},"labels":{"application":"spp-orchestrator","controller-uid":"dc9807f1-0b50-4f99-a39c-f5d5c06b7898","deployment-id":"d-2bo4qiirv1ued8q7ebradue32g","pipeline-id":"l-efn499u5h9xkb6bbh4eev4ytp"},"name":"spp-orchestrator-get-swagger-yaml-service-stupsplanetexpresslocaltokenretriever","namespace":"default"},"spec":{"rules":[{"host":"spp-orchestrator.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-orchestrator","servicePort":"http"},"pathType":"ImplementationSpecific"}]}},{"host":"spp-orchestrator-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"spp-orchestrator","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> unverifiedAuditLog("sub") -> oauthTokeninfoAllScope("uid")
+      -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(4) && Path("/swagger.yaml") && Method("GET")
+      && JWTPayloadAllKV("sub", "stups_planetexpress-local-token-retriever") && Header("X-Forwarded-Proto",
+      "https")
+  creationTimestamp: "2021-02-22T15:58:37Z"
+  generation: 1
+  labels:
+    application: spp-orchestrator
+    controller-uid: dc9807f1-0b50-4f99-a39c-f5d5c06b7898
+    deployment-id: d-2bo4qiirv1ued8q7ebradue32g
+    pipeline-id: l-efn499u5h9xkb6bbh4eev4ytp
+  name: spp-orchestrator-get-swagger-yaml-service-stupsplanetexpresslocaltokenretriever
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-orchestrator
+    uid: dc9807f1-0b50-4f99-a39c-f5d5c06b7898
+  resourceVersion: "1357489214"
+  uid: 842f593e-d2e4-46ac-bacf-85a3a532e333
+spec:
+  rules:
+  - host: spp-orchestrator.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-orchestrator
+            port:
+              name: http
+        pathType: ImplementationSpecific
+  - host: spp-orchestrator-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-orchestrator
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

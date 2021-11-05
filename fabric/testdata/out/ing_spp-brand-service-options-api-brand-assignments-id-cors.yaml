@@ -1,0 +1,63 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-routes":"Weight(3)
+      \u0026\u0026 Path(\"/api/brand-assignments/:id\") \u0026\u0026 Method(\"OPTIONS\")
+      \u0026\u0026 Header(\"X-Forwarded-Proto\", \"https\") -\u003e enableAccessLog(4,
+      5) -\u003e status(204) -\u003e flowId(\"reuse\") -\u003e corsOrigin(\"https://dabo-master.lounge-test.zalan.do\",
+      \"https://dabo.lounge-test.zalan.do\", \"https://mooncake-master.lounge-test.zalan.do\",
+      \"https://mooncake-freeze.lounge-test.zalan.do\", \"https://dabo-freeze.lounge-test.zalan.do\")
+      -\u003e appendResponseHeader(\"Access-Control-Allow-Methods\", \"DELETE, GET,
+      OPTIONS\") -\u003e appendResponseHeader(\"Access-Control-Allow-Headers\", \"authorization,
+      ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid\") -\u003e \u003cshunt\u003e"},"labels":{"controller-uid":"916e724f-8e4a-4dad-9567-3d476c465596","deployment-id":"d-xr2dcbhocgmgsjwa9hxg1626a","pipeline-id":"l-2a15ina44v1jfac239xyczoh9s"},"name":"spp-brand-service-options-api-brand-assignments-id-cors","namespace":"default"},"spec":{"rules":[{"host":"spp-brand-service.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-brand-service","servicePort":"http"},"pathType":"ImplementationSpecific"}]}},{"host":"spp-brand-data-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"spp-brand-service","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-routes: Weight(3) && Path("/api/brand-assignments/:id") &&
+      Method("OPTIONS") && Header("X-Forwarded-Proto", "https") -> enableAccessLog(4,
+      5) -> status(204) -> flowId("reuse") -> corsOrigin("https://dabo-master.lounge-test.zalan.do",
+      "https://dabo.lounge-test.zalan.do", "https://mooncake-master.lounge-test.zalan.do",
+      "https://mooncake-freeze.lounge-test.zalan.do", "https://dabo-freeze.lounge-test.zalan.do")
+      -> appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS")
+      -> appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled,
+      ot-tracer-spanid, ot-tracer-traceid") -> <shunt>
+  creationTimestamp: "2020-04-14T11:37:59Z"
+  generation: 4
+  labels:
+    controller-uid: 916e724f-8e4a-4dad-9567-3d476c465596
+    deployment-id: d-xr2dcbhocgmgsjwa9hxg1626a
+    pipeline-id: l-2a15ina44v1jfac239xyczoh9s
+  name: spp-brand-service-options-api-brand-assignments-id-cors
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-brand-service
+    uid: 916e724f-8e4a-4dad-9567-3d476c465596
+  resourceVersion: "1379126937"
+  uid: 681dc5bf-e6f0-49c2-854b-6224556536c4
+spec:
+  rules:
+  - host: spp-brand-service.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-brand-service
+            port:
+              name: http
+        pathType: ImplementationSpecific
+  - host: spp-brand-data-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-brand-service
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

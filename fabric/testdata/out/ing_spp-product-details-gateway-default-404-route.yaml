@@ -1,0 +1,48 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-routes":"PathSubtree(\"/\")
+      -\u003e oauthTokeninfoAllScope(\"uid\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e status(404) -\u003e inlineContent(\"{\\\"title\\\":\\\"Gateway Rejected\\\",\\\"status\\\":404,\\\"detail\\\":\\\"Gateway
+      Route Not Matched\\\"}\") -\u003e \u003cshunt\u003e"},"labels":{"application":"spp-product-details","component":"service","controller-uid":"ef23df6c-d613-4395-8ad1-5e0b5def5c78","deployment-id":"d-2oqicnctgrsqujrzesvv1zj46h","environment":"staging","pipeline-id":"l-go7dq38pmsiuequnyf4z162zy","version":"master-56"},"name":"spp-product-details-gateway-default-404-route","namespace":"default"},"spec":{"rules":[{"host":"spp-product-details.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-product-details","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-routes: PathSubtree("/") -> oauthTokeninfoAllScope("uid")
+      -> unverifiedAuditLog("sub") -> status(404) -> inlineContent("{\"title\":\"Gateway
+      Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}") -> <shunt>
+  creationTimestamp: "2021-10-06T10:36:46Z"
+  generation: 1
+  labels:
+    application: spp-product-details
+    component: service
+    controller-uid: ef23df6c-d613-4395-8ad1-5e0b5def5c78
+    deployment-id: d-2oqicnctgrsqujrzesvv1zj46h
+    environment: staging
+    pipeline-id: l-go7dq38pmsiuequnyf4z162zy
+    version: master-56
+  name: spp-product-details-gateway-default-404-route
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-product-details-gateway
+    uid: ef23df6c-d613-4395-8ad1-5e0b5def5c78
+  resourceVersion: "1364435781"
+  uid: a416b36a-c2cd-4007-a0dd-e7355054e37c
+spec:
+  rules:
+  - host: spp-product-details.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-details
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

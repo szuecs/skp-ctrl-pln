@@ -1,0 +1,67 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"inlineContentIfStatus(429,
+      \"{\\\"title\\\": \\\"Rate limit exceeded\\\", \\\"detail\\\": \\\"See the retry-after
+      header for how many seconds to wait before retrying.\\\", \\\"status\\\": 429}\",
+      \"application/problem+json\") -\u003e oauthTokeninfoAnyKV(\"realm\", \"/services\",
+      \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"sub\") -\u003e oauthTokeninfoAllScope(\"uid\",
+      \"donut.read_all\") -\u003e clusterClientRatelimit(\"donut_api-accounting-products-wildcard_GET_stups_planetexpress-local-token-retriever\",
+      10000, \"1m\", \"Authorization\") -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\",
+      \"uid\", \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(4) \u0026\u0026
+      Path(\"/api/accounting-products/**\") \u0026\u0026 Method(\"GET\") \u0026\u0026
+      JWTPayloadAllKV(\"sub\", \"stups_planetexpress-local-token-retriever\") \u0026\u0026
+      Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"e0340652-4fd4-11e9-9e4a-02c71e31bbc4","deployment-id":"d-27kxv9mag8z9hbrgy7y4gntd9j","pipeline-id":"l-stu8z4b4s9g6emmbbv9r45975"},"name":"donut-get-api-accounting-products-wildcard-rl-service-stupsplanetexpresslocaltokenretriever","namespace":"default"},"spec":{"rules":[{"host":"donut.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"donut","servicePort":"http"},"pathType":"ImplementationSpecific"}]}},{"host":"spp-accounting-data-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"donut","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: 'inlineContentIfStatus(429, "{\"title\": \"Rate limit
+      exceeded\", \"detail\": \"See the retry-after header for how many seconds to
+      wait before retrying.\", \"status\": 429}", "application/problem+json") -> oauthTokeninfoAnyKV("realm",
+      "/services", "realm", "/employees") -> unverifiedAuditLog("sub") -> oauthTokeninfoAllScope("uid",
+      "donut.read_all") -> clusterClientRatelimit("donut_api-accounting-products-wildcard_GET_stups_planetexpress-local-token-retriever",
+      10000, "1m", "Authorization") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")'
+    zalando.org/skipper-predicate: Weight(4) && Path("/api/accounting-products/**")
+      && Method("GET") && JWTPayloadAllKV("sub", "stups_planetexpress-local-token-retriever")
+      && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2021-01-27T15:01:14Z"
+  generation: 1
+  labels:
+    controller-uid: e0340652-4fd4-11e9-9e4a-02c71e31bbc4
+    deployment-id: d-27kxv9mag8z9hbrgy7y4gntd9j
+    pipeline-id: l-stu8z4b4s9g6emmbbv9r45975
+  name: donut-get-api-accounting-products-wildcard-rl-service-stupsplanetexpresslocaltokenretriever
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: donut
+    uid: e0340652-4fd4-11e9-9e4a-02c71e31bbc4
+  resourceVersion: "1370351334"
+  uid: 638b16ab-ae84-4f34-b87a-9d673fee3298
+spec:
+  rules:
+  - host: donut.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: donut
+            port:
+              name: http
+        pathType: ImplementationSpecific
+  - host: spp-accounting-data-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: donut
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

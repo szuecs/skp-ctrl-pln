@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e oauthTokeninfoAllScope(\"uid\", \"spp-product-identity.admin\") -\u003e
+      flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\", \"scope\",
+      \"realm\")","zalando.org/skipper-predicate":"Weight(3) \u0026\u0026 Path(\"/internal-product-identities/gtin-ranges/:id/extensions\")
+      \u0026\u0026 Method(\"POST\") \u0026\u0026 Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"09f4689e-aaf5-4044-b5b7-b9f2088318c9","deployment-id":"d-2ra6pjhfno3q3m2vq6fs87ed2r","pipeline-id":"l-2j2jz7dxvehx8rvs15wuj4sajb"},"name":"spp-product-identity-perf-test-post-internal-product-identities-gtin-ranges-id-extensions-all","namespace":"default"},"spec":{"rules":[{"host":"spp-product-identity-perf-test.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-product-identity-perf-test","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> unverifiedAuditLog("sub") -> oauthTokeninfoAllScope("uid",
+      "spp-product-identity.admin") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(3) && Path("/internal-product-identities/gtin-ranges/:id/extensions")
+      && Method("POST") && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2021-09-20T13:48:01Z"
+  generation: 1
+  labels:
+    controller-uid: 09f4689e-aaf5-4044-b5b7-b9f2088318c9
+    deployment-id: d-2ra6pjhfno3q3m2vq6fs87ed2r
+    pipeline-id: l-2j2jz7dxvehx8rvs15wuj4sajb
+  name: spp-product-identity-perf-test-post-internal-product-identities-gtin-ranges-id-extensions-all
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-product-identity-perf-test
+    uid: 09f4689e-aaf5-4044-b5b7-b9f2088318c9
+  resourceVersion: "1378641740"
+  uid: ebde2ceb-ce4c-453a-81ab-3fc969d763f0
+spec:
+  rules:
+  - host: spp-product-identity-perf-test.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-identity-perf-test
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

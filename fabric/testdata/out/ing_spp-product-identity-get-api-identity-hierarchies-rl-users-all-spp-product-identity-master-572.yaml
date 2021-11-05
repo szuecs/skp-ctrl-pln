@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"inlineContentIfStatus(429,
+      \"{\\\"title\\\": \\\"Rate limit exceeded\\\", \\\"detail\\\": \\\"See the retry-after
+      header for how many seconds to wait before retrying.\\\", \\\"status\\\": 429}\",
+      \"application/problem+json\") -\u003e oauthTokeninfoAnyKV(\"realm\", \"/services\",
+      \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"https://identity.zalando.com/managed-id\")
+      -\u003e oauthTokeninfoAllScope(\"uid\") -\u003e clusterClientRatelimit(\"spp-product-identity_api-identity-hierarchies_GET_users\",
+      300, \"1m\", \"Authorization\") -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\",
+      \"uid\", \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(4) \u0026\u0026
+      Path(\"/api/identity-hierarchies\") \u0026\u0026 Method(\"GET\") \u0026\u0026
+      JWTPayloadAnyKV(\"https://identity.zalando.com/managed-id\", \"cgallagher\",
+      \"https://identity.zalando.com/managed-id\", \"operbellini\", \"https://identity.zalando.com/managed-id\",
+      \"soceanainn\", \"https://identity.zalando.com/managed-id\", \"dagordon\", \"https://identity.zalando.com/managed-id\",
+      \"zszekely\", \"https://identity.zalando.com/managed-id\", \"matgonzalez\",
+      \"https://identity.zalando.com/managed-id\", \"brcullen\", \"https://identity.zalando.com/managed-id\",
+      \"psuchon\", \"https://identity.zalando.com/managed-id\", \"dlopes\", \"https://identity.zalando.com/managed-id\",
+      \"phgieschen\", \"https://identity.zalando.com/managed-id\", \"fmoloney\", \"https://identity.zalando.com/managed-id\",
+      \"ralmeida\", \"https://identity.zalando.com/managed-id\", \"snesterenko\")
+      \u0026\u0026 Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"dd881b95-f979-11e8-968d-026f86c7c91a","deployment-id":"d-axm9b9h4emne2icuau68ss53s","pipeline-id":"l-gqkrnfckkaunnp4hd1ria2jz5"},"name":"spp-product-identity-get-api-identity-hierarchies-rl-users-all-spp-product-identity-master-572","namespace":"default"},"spec":{"rules":[{"host":"spp-product-identity-master-572.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-product-identity-master-572","servicePort":8080},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: 'inlineContentIfStatus(429, "{\"title\": \"Rate limit
+      exceeded\", \"detail\": \"See the retry-after header for how many seconds to
+      wait before retrying.\", \"status\": 429}", "application/problem+json") -> oauthTokeninfoAnyKV("realm",
+      "/services", "realm", "/employees") -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+      -> oauthTokeninfoAllScope("uid") -> clusterClientRatelimit("spp-product-identity_api-identity-hierarchies_GET_users",
+      300, "1m", "Authorization") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")'
+    zalando.org/skipper-predicate: Weight(4) && Path("/api/identity-hierarchies")
+      && Method("GET") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id",
+      "cgallagher", "https://identity.zalando.com/managed-id", "operbellini", "https://identity.zalando.com/managed-id",
+      "soceanainn", "https://identity.zalando.com/managed-id", "dagordon", "https://identity.zalando.com/managed-id",
+      "zszekely", "https://identity.zalando.com/managed-id", "matgonzalez", "https://identity.zalando.com/managed-id",
+      "brcullen", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id",
+      "dlopes", "https://identity.zalando.com/managed-id", "phgieschen", "https://identity.zalando.com/managed-id",
+      "fmoloney", "https://identity.zalando.com/managed-id", "ralmeida", "https://identity.zalando.com/managed-id",
+      "snesterenko") && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2021-10-28T16:04:17Z"
+  generation: 1
+  labels:
+    controller-uid: dd881b95-f979-11e8-968d-026f86c7c91a
+    deployment-id: d-axm9b9h4emne2icuau68ss53s
+    pipeline-id: l-gqkrnfckkaunnp4hd1ria2jz5
+  name: spp-product-identity-get-api-identity-hierarchies-rl-users-all-spp-product-identity-master-572
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-product-identity
+    uid: dd881b95-f979-11e8-968d-026f86c7c91a
+  resourceVersion: "1383840140"
+  uid: a8d4bcda-97b4-4732-82ac-65677ed6db8a
+spec:
+  rules:
+  - host: spp-product-identity-master-572.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-identity-master-572
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

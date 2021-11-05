@@ -1,0 +1,78 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/backend-weights":"{\"spp-product-search-master-301\":0.0,\"spp-product-search-master-302\":100.0}","zalando.org/skipper-filter":"inlineContentIfStatus(429,
+      \"{\\\"title\\\": \\\"Rate limit exceeded\\\", \\\"detail\\\": \\\"See the retry-after
+      header for how many seconds to wait before retrying.\\\", \\\"status\\\": 429}\",
+      \"application/problem+json\") -\u003e oauthTokeninfoAnyKV(\"realm\", \"/services\",
+      \"realm\", \"/employees\") -\u003e unverifiedAuditLog(\"sub\") -\u003e oauthTokeninfoAllScope(\"uid\")
+      -\u003e clusterClientRatelimit(\"spp-product-search_api-product-queries-wildcard_GET\",
+      100, \"1m\", \"Authorization\") -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\",
+      \"uid\", \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(3) \u0026\u0026
+      Path(\"/api/product-queries/**\") \u0026\u0026 Method(\"GET\") \u0026\u0026
+      Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"f7b886f6-59f7-11e9-8cf4-0af2c39a068a","deployment-id":"d-21eju7ytbm9zrt1rnihrexzppm","pipeline-id":"l-2rrd5x47t59jsji3jbf7z77noc"},"name":"spp-product-search-get-api-product-queries-wildcard-rl-all","namespace":"default"},"spec":{"rules":[{"host":"spp-product-search.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-product-search-master-301","servicePort":8080},"pathType":"ImplementationSpecific"},{"backend":{"serviceName":"spp-product-search-master-302","servicePort":8080},"pathType":"ImplementationSpecific"}]}},{"host":"spp-product-search-test.zalandoapis.com","http":{"paths":[{"backend":{"serviceName":"spp-product-search-master-301","servicePort":8080},"pathType":"ImplementationSpecific"},{"backend":{"serviceName":"spp-product-search-master-302","servicePort":8080},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/backend-weights: '{"spp-product-search-master-301":0.0,"spp-product-search-master-302":100.0}'
+    zalando.org/skipper-filter: 'inlineContentIfStatus(429, "{\"title\": \"Rate limit
+      exceeded\", \"detail\": \"See the retry-after header for how many seconds to
+      wait before retrying.\", \"status\": 429}", "application/problem+json") -> oauthTokeninfoAnyKV("realm",
+      "/services", "realm", "/employees") -> unverifiedAuditLog("sub") -> oauthTokeninfoAllScope("uid")
+      -> clusterClientRatelimit("spp-product-search_api-product-queries-wildcard_GET",
+      100, "1m", "Authorization") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")'
+    zalando.org/skipper-predicate: Weight(3) && Path("/api/product-queries/**") &&
+      Method("GET") && Header("X-Forwarded-Proto", "https")
+  creationTimestamp: "2019-09-11T11:59:51Z"
+  generation: 219
+  labels:
+    controller-uid: f7b886f6-59f7-11e9-8cf4-0af2c39a068a
+    deployment-id: d-21eju7ytbm9zrt1rnihrexzppm
+    pipeline-id: l-2rrd5x47t59jsji3jbf7z77noc
+  name: spp-product-search-get-api-product-queries-wildcard-rl-all
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-product-search
+    uid: f7b886f6-59f7-11e9-8cf4-0af2c39a068a
+  resourceVersion: "1379978478"
+  uid: a9216cc6-d48b-11e9-bd3b-025d8ea5ca0a
+spec:
+  rules:
+  - host: spp-product-search.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-search-master-301
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: spp-product-search-master-302
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+  - host: spp-product-search-test.zalandoapis.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-product-search-master-301
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: spp-product-search-master-302
+            port:
+              number: 8080
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

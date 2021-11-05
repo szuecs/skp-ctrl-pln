@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-routes":"PathSubtree(\"/\")
+      -\u003e oauthTokeninfoAllScope(\"uid\") -\u003e unverifiedAuditLog(\"sub\")
+      -\u003e status(404) -\u003e inlineContent(\"{\\\"title\\\":\\\"Gateway Rejected\\\",\\\"status\\\":404,\\\"detail\\\":\\\"Gateway
+      Route Not Matched\\\"}\") -\u003e \u003cshunt\u003e"},"labels":{"controller-uid":"bd3196ef-02aa-11e9-a425-02d53b6e2814","deployment-id":"d-wzg528roit197z6tryudarwfn"},"name":"sentiment-analysis-default-404-route","namespace":"default"},"spec":{"rules":[{"host":"sentiment-analysis.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"sentiment-analysis","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-routes: PathSubtree("/") -> oauthTokeninfoAllScope("uid")
+      -> unverifiedAuditLog("sub") -> status(404) -> inlineContent("{\"title\":\"Gateway
+      Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}") -> <shunt>
+  creationTimestamp: "2019-06-17T13:44:18Z"
+  generation: 1
+  labels:
+    controller-uid: bd3196ef-02aa-11e9-a425-02d53b6e2814
+    deployment-id: d-wzg528roit197z6tryudarwfn
+  name: sentiment-analysis-default-404-route
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: sentiment-analysis
+    uid: bd3196ef-02aa-11e9-a425-02d53b6e2814
+  resourceVersion: "1357488659"
+  uid: 013b3e66-9106-11e9-a3f0-065b20c8b844
+spec:
+  rules:
+  - host: sentiment-analysis.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: sentiment-analysis
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

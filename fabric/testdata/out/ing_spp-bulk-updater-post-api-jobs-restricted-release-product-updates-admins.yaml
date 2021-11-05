@@ -1,0 +1,67 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e enableAccessLog(2, 4, 5) -\u003e
+      unverifiedAuditLog(\"https://identity.zalando.com/managed-id\") -\u003e oauthTokeninfoAllScope(\"uid\")
+      -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\",
+      \"scope\", \"realm\") -\u003e tee(\"https://made-up-svc.smart-product-platform-test.zalan.do\")","zalando.org/skipper-predicate":"Weight(5)
+      \u0026\u0026 Path(\"/api/jobs/restricted-release/product-updates\") \u0026\u0026
+      Method(\"POST\") \u0026\u0026 JWTPayloadAllKV(\"https://identity.zalando.com/realm\",
+      \"users\") \u0026\u0026 JWTPayloadAnyKV(\"https://identity.zalando.com/managed-id\",
+      \"aalexandre\", \"https://identity.zalando.com/managed-id\", \"gcarta\", \"https://identity.zalando.com/managed-id\",
+      \"kanli\", \"https://identity.zalando.com/managed-id\", \"bmooney\", \"https://identity.zalando.com/managed-id\",
+      \"egalligan\", \"https://identity.zalando.com/managed-id\", \"dagordon\", \"https://identity.zalando.com/managed-id\",
+      \"rlagarferrei\", \"https://identity.zalando.com/managed-id\", \"brcullen\",
+      \"https://identity.zalando.com/managed-id\", \"msung\", \"https://identity.zalando.com/managed-id\",
+      \"dgordon\", \"https://identity.zalando.com/managed-id\", \"ralmeida\", \"https://identity.zalando.com/managed-id\",
+      \"aortega\") \u0026\u0026 Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"application":"spp-bulk-updater","controller-uid":"e586799c-5510-4a61-80cb-bead7c9b588a","deployment-id":"d-bifte6rn17yu4n5xcyopwz7fr","pipeline-id":"l-2pzi5f7y9tucwozo68dap5dcp2"},"name":"spp-bulk-updater-post-api-jobs-restricted-release-product-updates-admins","namespace":"default"},"spec":{"rules":[{"host":"spp-bulk-updater.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"spp-bulk-updater","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> enableAccessLog(2, 4, 5) -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+      -> oauthTokeninfoAllScope("uid") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm") -> tee("https://made-up-svc.smart-product-platform-test.zalan.do")
+    zalando.org/skipper-predicate: Weight(5) && Path("/api/jobs/restricted-release/product-updates")
+      && Method("POST") && JWTPayloadAllKV("https://identity.zalando.com/realm", "users")
+      && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "aalexandre",
+      "https://identity.zalando.com/managed-id", "gcarta", "https://identity.zalando.com/managed-id",
+      "kanli", "https://identity.zalando.com/managed-id", "bmooney", "https://identity.zalando.com/managed-id",
+      "egalligan", "https://identity.zalando.com/managed-id", "dagordon", "https://identity.zalando.com/managed-id",
+      "rlagarferrei", "https://identity.zalando.com/managed-id", "brcullen", "https://identity.zalando.com/managed-id",
+      "msung", "https://identity.zalando.com/managed-id", "dgordon", "https://identity.zalando.com/managed-id",
+      "ralmeida", "https://identity.zalando.com/managed-id", "aortega") && Header("X-Forwarded-Proto",
+      "https")
+  creationTimestamp: "2021-10-27T08:48:58Z"
+  generation: 1
+  labels:
+    application: spp-bulk-updater
+    controller-uid: e586799c-5510-4a61-80cb-bead7c9b588a
+    deployment-id: d-bifte6rn17yu4n5xcyopwz7fr
+    pipeline-id: l-2pzi5f7y9tucwozo68dap5dcp2
+  name: spp-bulk-updater-post-api-jobs-restricted-release-product-updates-admins
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: spp-bulk-updater
+    uid: e586799c-5510-4a61-80cb-bead7c9b588a
+  resourceVersion: "1379110899"
+  uid: 6d37820a-d06c-470e-9453-df82d16e2c4f
+spec:
+  rules:
+  - host: spp-bulk-updater.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: spp-bulk-updater
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com

@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    metacontroller.k8s.io/last-applied-configuration: '{"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"zalando.org/aws-load-balancer-ssl-policy":"ELBSecurityPolicy-FS-2018-06","zalando.org/skipper-filter":"oauthTokeninfoAnyKV(\"realm\",
+      \"/services\", \"realm\", \"/employees\") -\u003e enableAccessLog(2, 4, 5) -\u003e
+      unverifiedAuditLog(\"https://identity.zalando.com/managed-id\") -\u003e oauthTokeninfoAllScope(\"uid\")
+      -\u003e flowId(\"reuse\") -\u003e forwardToken(\"X-TokenInfo-Forward\", \"uid\",
+      \"scope\", \"realm\")","zalando.org/skipper-predicate":"Weight(5) \u0026\u0026
+      Path(\"/api/classification-status\") \u0026\u0026 Method(\"GET\") \u0026\u0026
+      JWTPayloadAllKV(\"https://identity.zalando.com/realm\", \"users\") \u0026\u0026
+      JWTPayloadAnyKV(\"https://identity.zalando.com/managed-id\", \"dagordon\", \"https://identity.zalando.com/managed-id\",
+      \"zszekely\", \"https://identity.zalando.com/managed-id\", \"dhunt\", \"https://identity.zalando.com/managed-id\",
+      \"brcullen\", \"https://identity.zalando.com/managed-id\", \"ralmeida\") \u0026\u0026
+      Header(\"X-Forwarded-Proto\", \"https\")"},"labels":{"controller-uid":"ae043f81-ecb4-4dd8-8a28-e08278e4eae8","deployment-id":"d-n8kgbacnbwvvrvjq1i4r3jwac","pipeline-id":"l-kham1wbmzaojugzy8cubi4fib"},"name":"brexit-mgmt-test-ralmeida-get-api-classification-status-admins","namespace":"default"},"spec":{"rules":[{"host":"brexit-mgmt-test-ralmeida.smart-product-platform-test.zalan.do","http":{"paths":[{"backend":{"serviceName":"brexit-mgmt-test-ralmeida","servicePort":"http"},"pathType":"ImplementationSpecific"}]}}]}}'
+    zalando.org/aws-load-balancer-ssl-policy: ELBSecurityPolicy-FS-2018-06
+    zalando.org/skipper-filter: oauthTokeninfoAnyKV("realm", "/services", "realm",
+      "/employees") -> enableAccessLog(2, 4, 5) -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+      -> oauthTokeninfoAllScope("uid") -> flowId("reuse") -> forwardToken("X-TokenInfo-Forward",
+      "uid", "scope", "realm")
+    zalando.org/skipper-predicate: Weight(5) && Path("/api/classification-status")
+      && Method("GET") && JWTPayloadAllKV("https://identity.zalando.com/realm", "users")
+      && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "dagordon", "https://identity.zalando.com/managed-id",
+      "zszekely", "https://identity.zalando.com/managed-id", "dhunt", "https://identity.zalando.com/managed-id",
+      "brcullen", "https://identity.zalando.com/managed-id", "ralmeida") && Header("X-Forwarded-Proto",
+      "https")
+  creationTimestamp: "2021-06-22T16:06:57Z"
+  generation: 1
+  labels:
+    controller-uid: ae043f81-ecb4-4dd8-8a28-e08278e4eae8
+    deployment-id: d-n8kgbacnbwvvrvjq1i4r3jwac
+    pipeline-id: l-kham1wbmzaojugzy8cubi4fib
+  name: brexit-mgmt-test-ralmeida-get-api-classification-status-admins
+  namespace: default
+  ownerReferences:
+  - apiVersion: zalando.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: FabricGateway
+    name: brexit-mgmt-test-ralmeida
+    uid: ae043f81-ecb4-4dd8-8a28-e08278e4eae8
+  resourceVersion: "1357488327"
+  uid: c2f639fc-8f1b-4b7d-95d4-a90a10f03da5
+spec:
+  rules:
+  - host: brexit-mgmt-test-ralmeida.smart-product-platform-test.zalan.do
+    http:
+      paths:
+      - backend:
+          service:
+            name: brexit-mgmt-test-ralmeida
+            port:
+              name: http
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - hostname: kube-ing-lb-vejw9uwox1cj-898356825914b821.elb.eu-central-1.amazonaws.com
