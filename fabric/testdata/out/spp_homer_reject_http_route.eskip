@@ -1,0 +1,41 @@
+kube_default__spp_homer_reject_http_route__0__spp_homer_api_smart_product_platform_test_zalan_do____: Host(/^(spp-homer-api[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> unverifiedAuditLog("sub")
+  -> status(400)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+  -> <shunt>;
+
+kube_default__spp_homer_reject_http_route__0__spp_homer_smart_product_platform_test_zalan_do____: Host(/^(spp-homer[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> unverifiedAuditLog("sub")
+  -> status(400)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+  -> <shunt>;
+
+kube_default__spp_homer_reject_http_route__0__spp_supplier_data_test_zalandoapis_com____: Host(/^(spp-supplier-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> unverifiedAuditLog("sub")
+  -> status(400)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+  -> <shunt>;
+
+kube_default__spp_homer_reject_http_route__spp_homer_api_smart_product_platform_test_zalan_do____spp_homer_master_368: Host(/^(spp-homer-api[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"6c65f9b1-20ca-42dd-953e-ebbdf25e024e\",\"application_id\":\"spp-homer\",\"path_templates\":[\"/internal-supplier-products\",\"/internal-supplier-products/aggregation\",\"/internal-supplier-products/last-modified\",\"/internal/aggregated-events-callhome\",\"/internal/events-callhome\",\"/supplier-products\",\"/supplier-products/{id}\"]}")
+  -> "http://10.2.66.9:8080";
+
+kube_default__spp_homer_reject_http_route__spp_homer_smart_product_platform_test_zalan_do____spp_homer_master_368: Host(/^(spp-homer[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"6c65f9b1-20ca-42dd-953e-ebbdf25e024e\",\"application_id\":\"spp-homer\",\"path_templates\":[\"/internal-supplier-products\",\"/internal-supplier-products/aggregation\",\"/internal-supplier-products/last-modified\",\"/internal/aggregated-events-callhome\",\"/internal/events-callhome\",\"/supplier-products\",\"/supplier-products/{id}\"]}")
+  -> "http://10.2.66.9:8080";
+
+kube_default__spp_homer_reject_http_route__spp_supplier_data_test_zalandoapis_com____spp_homer_master_368: Host(/^(spp-supplier-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"6c65f9b1-20ca-42dd-953e-ebbdf25e024e\",\"application_id\":\"spp-homer\",\"path_templates\":[\"/internal-supplier-products\",\"/internal-supplier-products/aggregation\",\"/internal-supplier-products/last-modified\",\"/internal/aggregated-events-callhome\",\"/internal/events-callhome\",\"/supplier-products\",\"/supplier-products/{id}\"]}")
+  -> "http://10.2.66.9:8080";

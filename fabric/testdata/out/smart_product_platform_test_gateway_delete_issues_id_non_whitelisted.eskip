@@ -1,0 +1,14 @@
+kube_default__smart_product_platform_test_gateway_delete_issues_id_non_whitelisted__0__spp_product_details_smart_product_platform_test_zalan_do____: Path("/issues/:id") && Host(/^(spp-product-details[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("DELETE") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> status(403)
+  -> unverifiedAuditLog("sub")
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":403,\"detail\":\"Illegal attempt to access whitelisted route\"}")
+  -> <shunt>;
+
+kube_default__smart_product_platform_test_gateway_delete_issues_id_non_whitelisted__spp_product_details_smart_product_platform_test_zalan_do____smart_product_platform_test: Host(/^(spp-product-details[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

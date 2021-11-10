@@ -1,0 +1,44 @@
+kube_default__spp_product_identity_post_internal_product_identities_gtin_assignments_non_whitelisted__0__spp_identity_data_test_zalandoapis_com____: Path("/internal-product-identities/gtin-assignments") && Host(/^(spp-identity-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> status(403)
+  -> unverifiedAuditLog("sub")
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":403,\"detail\":\"Illegal attempt to access whitelisted route\"}")
+  -> <shunt>;
+
+kube_default__spp_product_identity_post_internal_product_identities_gtin_assignments_non_whitelisted__0__spp_product_identity_api_smart_product_platform_test_zalan_do____: Path("/internal-product-identities/gtin-assignments") && Host(/^(spp-product-identity-api[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> status(403)
+  -> unverifiedAuditLog("sub")
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":403,\"detail\":\"Illegal attempt to access whitelisted route\"}")
+  -> <shunt>;
+
+kube_default__spp_product_identity_post_internal_product_identities_gtin_assignments_non_whitelisted__0__spp_product_identity_smart_product_platform_test_zalan_do____: Path("/internal-product-identities/gtin-assignments") && Host(/^(spp-product-identity[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> status(403)
+  -> unverifiedAuditLog("sub")
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":403,\"detail\":\"Illegal attempt to access whitelisted route\"}")
+  -> <shunt>;
+
+kube_default__spp_product_identity_post_internal_product_identities_gtin_assignments_non_whitelisted__spp_identity_data_test_zalandoapis_com____spp_product_identity_master_574: Host(/^(spp-identity-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> originMarker("apiUsageMonitoring", "d-m2t7jm2pg4ba61vkp25cnftms:0", "2021-11-08T18:00:25Z")
+  -> apiUsageMonitoring("{\"api_id\":\"a7281c5e-14af-4bd1-970c-8783df20b233\",\"application_id\":\"spp-product-identity\",\"path_templates\":[\"/api/gtin-allocations\",\"/api/gtin-assignments\",\"/api/gtin-assignments-history-search\",\"/api/gtin-assignments-search\",\"/api/identities\",\"/api/identities-hierarchies\",\"/api/identity-hierarchies\",\"/api/sku-hierarchies\",\"/api/sku-hierarchies/{sku}\",\"/api/skus\",\"/api/skus-validation-requests\",\"/api/skus/{sku}\",\"/api/skus/{sku}/enablement\"]}")
+  -> "http://10.2.87.182:8080";
+
+kube_default__spp_product_identity_post_internal_product_identities_gtin_assignments_non_whitelisted__spp_product_identity_api_smart_product_platform_test_zalan_do____spp_product_identity_master_574: Host(/^(spp-product-identity-api[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> originMarker("apiUsageMonitoring", "d-m2t7jm2pg4ba61vkp25cnftms:0", "2021-11-08T18:00:25Z")
+  -> apiUsageMonitoring("{\"api_id\":\"a7281c5e-14af-4bd1-970c-8783df20b233\",\"application_id\":\"spp-product-identity\",\"path_templates\":[\"/api/gtin-allocations\",\"/api/gtin-assignments\",\"/api/gtin-assignments-history-search\",\"/api/gtin-assignments-search\",\"/api/identities\",\"/api/identities-hierarchies\",\"/api/identity-hierarchies\",\"/api/sku-hierarchies\",\"/api/sku-hierarchies/{sku}\",\"/api/skus\",\"/api/skus-validation-requests\",\"/api/skus/{sku}\",\"/api/skus/{sku}/enablement\"]}")
+  -> "http://10.2.87.182:8080";
+
+kube_default__spp_product_identity_post_internal_product_identities_gtin_assignments_non_whitelisted__spp_product_identity_smart_product_platform_test_zalan_do____spp_product_identity_master_574: Host(/^(spp-product-identity[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> originMarker("apiUsageMonitoring", "d-m2t7jm2pg4ba61vkp25cnftms:0", "2021-11-08T18:00:25Z")
+  -> apiUsageMonitoring("{\"api_id\":\"a7281c5e-14af-4bd1-970c-8783df20b233\",\"application_id\":\"spp-product-identity\",\"path_templates\":[\"/api/gtin-allocations\",\"/api/gtin-assignments\",\"/api/gtin-assignments-history-search\",\"/api/gtin-assignments-search\",\"/api/identities\",\"/api/identities-hierarchies\",\"/api/identity-hierarchies\",\"/api/sku-hierarchies\",\"/api/sku-hierarchies/{sku}\",\"/api/skus\",\"/api/skus-validation-requests\",\"/api/skus/{sku}\",\"/api/skus/{sku}/enablement\"]}")
+  -> "http://10.2.87.182:8080";

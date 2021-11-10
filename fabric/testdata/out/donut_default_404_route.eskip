@@ -1,0 +1,41 @@
+kube_default__donut_default_404_route__0__donut_smart_product_platform_test_zalan_do____: Host(/^(donut[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__donut_default_404_route__0__spp_accounting_data_test_zalandoapis_com____: Host(/^(spp-accounting-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__donut_default_404_route__donut_smart_product_platform_test_zalan_do____donut: Host(/^(donut[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"45290030-99b8-4a30-8837-d36fc27384f3\",\"application_id\":\"donut\",\"path_templates\":[\"/api/accounting-products\",\"/api/accounting-products/{product_id}\"]}")
+  -> <roundRobin, "http://10.2.193.124:8080", "http://10.2.83.233:8080">;
+
+kube_default__donut_default_404_route__donut_smart_product_platform_test_zalan_do____donut_https_redirect: Host(/^(donut[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;
+
+kube_default__donut_default_404_route__spp_accounting_data_test_zalandoapis_com____donut: Host(/^(spp-accounting-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"45290030-99b8-4a30-8837-d36fc27384f3\",\"application_id\":\"donut\",\"path_templates\":[\"/api/accounting-products\",\"/api/accounting-products/{product_id}\"]}")
+  -> <roundRobin, "http://10.2.193.124:8080", "http://10.2.83.233:8080">;
+
+kube_default__donut_default_404_route__spp_accounting_data_test_zalandoapis_com____donut_https_redirect: Host(/^(spp-accounting-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

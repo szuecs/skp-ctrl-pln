@@ -1,0 +1,39 @@
+kube_default__setanta_category_gatekeeper_default_404_route__0__category_gatekeeper_pr_91_smart_product_platform_test_zalan_do____: Host(/^(category-gatekeeper-pr-91[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__setanta_category_gatekeeper_default_404_route__0__spp_category_gatekeeper_test_pr_91_zalandoapis_com____: Host(/^(spp-category-gatekeeper-test-pr-91[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__setanta_category_gatekeeper_default_404_route__category_gatekeeper_pr_91_smart_product_platform_test_zalan_do____setanta_category_gatekeeper: Host(/^(category-gatekeeper-pr-91[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> "http://10.2.213.233:9000";
+
+kube_default__setanta_category_gatekeeper_default_404_route__category_gatekeeper_pr_91_smart_product_platform_test_zalan_do____setanta_category_gatekeeper_https_redirect: Host(/^(category-gatekeeper-pr-91[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;
+
+kube_default__setanta_category_gatekeeper_default_404_route__spp_category_gatekeeper_test_pr_91_zalandoapis_com____setanta_category_gatekeeper: Host(/^(spp-category-gatekeeper-test-pr-91[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> "http://10.2.213.233:9000";
+
+kube_default__setanta_category_gatekeeper_default_404_route__spp_category_gatekeeper_test_pr_91_zalandoapis_com____setanta_category_gatekeeper_https_redirect: Host(/^(spp-category-gatekeeper-test-pr-91[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

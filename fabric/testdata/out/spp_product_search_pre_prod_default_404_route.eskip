@@ -1,0 +1,20 @@
+kube_default__spp_product_search_pre_prod_default_404_route__0__spp_product_search_pre_prod_smart_product_platform_test_zalan_do____: Host(/^(spp-product-search-pre-prod[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__spp_product_search_pre_prod_default_404_route__spp_product_search_pre_prod_smart_product_platform_test_zalan_do____spp_product_search_pre_prod_master_301: Host(/^(spp-product-search-pre-prod[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"c1295139-fdd2-4eae-a176-16e1edbcad03\",\"application_id\":\"spp-product-search\",\"path_templates\":[\"/product-queries\",\"/product-queries/{cursor}\"]}")
+  -> "http://10.2.39.6:8080";
+
+kube_default__spp_product_search_pre_prod_default_404_route__spp_product_search_pre_prod_smart_product_platform_test_zalan_do____spp_product_search_pre_prod_master_301_https_redirect: Host(/^(spp-product-search-pre-prod[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

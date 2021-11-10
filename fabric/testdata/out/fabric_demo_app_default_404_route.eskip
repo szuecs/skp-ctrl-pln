@@ -1,0 +1,20 @@
+kube_default__fabric_demo_app_default_404_route__0__fabric_demo_app_smart_product_platform_test_zalan_do____: Host(/^(fabric-demo-app[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__fabric_demo_app_default_404_route__fabric_demo_app_smart_product_platform_test_zalan_do____fabric_demo_app: Host(/^(fabric-demo-app[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"f445d2f9-d7cd-481a-9784-8ed63c38d3da\",\"application_id\":\"fabric-demo-app\",\"path_templates\":[\"/api/contributors\",\"/api/contributors/{id}\",\"/api/organisations\",\"/api/organisations/{id}\",\"/api/organisations/{parent-id}/contributors\",\"/api/organisations/{parent-id}/contributors/{id}\"]}")
+  -> "http://10.2.14.155:8080";
+
+kube_default__fabric_demo_app_default_404_route__fabric_demo_app_smart_product_platform_test_zalan_do____fabric_demo_app_https_redirect: Host(/^(fabric-demo-app[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

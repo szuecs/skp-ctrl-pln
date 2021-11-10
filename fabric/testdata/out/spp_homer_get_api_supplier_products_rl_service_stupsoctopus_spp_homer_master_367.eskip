@@ -1,0 +1,13 @@
+kube_default__spp_homer_get_api_supplier_products_rl_service_stupsoctopus_spp_homer_master_367__spp_homer_master_367_smart_product_platform_test_zalan_do____spp_homer_master_367: Path("/api/supplier-products") && Host(/^(spp-homer-master-367[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(4) && JWTPayloadAllKV("sub", "stups_octopus")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> clusterClientRatelimit("spp-homer_api-supplier-products_GET_stups_octopus", 10000, "1m", "Authorization")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

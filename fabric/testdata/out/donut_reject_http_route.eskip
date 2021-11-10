@@ -1,0 +1,27 @@
+kube_default__donut_reject_http_route__0__donut_smart_product_platform_test_zalan_do____: Host(/^(donut[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> unverifiedAuditLog("sub")
+  -> status(400)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+  -> <shunt>;
+
+kube_default__donut_reject_http_route__0__spp_accounting_data_test_zalandoapis_com____: Host(/^(spp-accounting-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> unverifiedAuditLog("sub")
+  -> status(400)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+  -> <shunt>;
+
+kube_default__donut_reject_http_route__donut_smart_product_platform_test_zalan_do____donut: Host(/^(donut[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"45290030-99b8-4a30-8837-d36fc27384f3\",\"application_id\":\"donut\",\"path_templates\":[\"/api/accounting-products\",\"/api/accounting-products/{product_id}\"]}")
+  -> <roundRobin, "http://10.2.193.124:8080", "http://10.2.83.233:8080">;
+
+kube_default__donut_reject_http_route__spp_accounting_data_test_zalandoapis_com____donut: Host(/^(spp-accounting-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"45290030-99b8-4a30-8837-d36fc27384f3\",\"application_id\":\"donut\",\"path_templates\":[\"/api/accounting-products\",\"/api/accounting-products/{product_id}\"]}")
+  -> <roundRobin, "http://10.2.193.124:8080", "http://10.2.83.233:8080">;

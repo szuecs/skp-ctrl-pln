@@ -1,0 +1,41 @@
+kube_default__sugarcane_default_404_route__0__spp_commodity_group_data_test_zalandoapis_com____: Host(/^(spp-commodity-group-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__sugarcane_default_404_route__0__sugarcane_smart_product_platform_test_zalan_do____: Host(/^(sugarcane[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__sugarcane_default_404_route__spp_commodity_group_data_test_zalandoapis_com____sugarcane: Host(/^(spp-commodity-group-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"fad12556-3cf7-4e33-ae0b-e4f11adf3db6\",\"application_id\":\"sugarcane\",\"path_templates\":[\"/api/commodity-groups\",\"/api/commodity-groups/{cg_code}\"]}")
+  -> <roundRobin, "http://10.2.80.37:8080", "http://10.2.88.161:8080">;
+
+kube_default__sugarcane_default_404_route__spp_commodity_group_data_test_zalandoapis_com____sugarcane_https_redirect: Host(/^(spp-commodity-group-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;
+
+kube_default__sugarcane_default_404_route__sugarcane_smart_product_platform_test_zalan_do____sugarcane: Host(/^(sugarcane[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"fad12556-3cf7-4e33-ae0b-e4f11adf3db6\",\"application_id\":\"sugarcane\",\"path_templates\":[\"/api/commodity-groups\",\"/api/commodity-groups/{cg_code}\"]}")
+  -> <roundRobin, "http://10.2.80.37:8080", "http://10.2.88.161:8080">;
+
+kube_default__sugarcane_default_404_route__sugarcane_smart_product_platform_test_zalan_do____sugarcane_https_redirect: Host(/^(sugarcane[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

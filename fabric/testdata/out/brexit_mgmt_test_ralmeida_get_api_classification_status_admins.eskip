@@ -1,0 +1,11 @@
+kube_default__brexit_mgmt_test_ralmeida_get_api_classification_status_admins__brexit_mgmt_test_ralmeida_smart_product_platform_test_zalan_do____brexit_mgmt_test_ralmeida: Path("/api/classification-status") && Host(/^(brexit-mgmt-test-ralmeida[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "dagordon", "https://identity.zalando.com/managed-id", "zszekely", "https://identity.zalando.com/managed-id", "dhunt", "https://identity.zalando.com/managed-id", "brcullen", "https://identity.zalando.com/managed-id", "ralmeida")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"d9a04d71-ab1d-47cc-b492-ea2e8250bdee\",\"application_id\":\"brexit\",\"path_templates\":[\"/actions/export-products\",\"/classification-status\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.19.212:8080";

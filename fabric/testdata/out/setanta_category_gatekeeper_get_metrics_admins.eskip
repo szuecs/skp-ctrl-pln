@@ -1,0 +1,21 @@
+kube_default__setanta_category_gatekeeper_get_metrics_admins__category_gatekeeper_pr_91_smart_product_platform_test_zalan_do____setanta_category_gatekeeper: Path("/metrics") && Host(/^(category-gatekeeper-pr-91[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "vobrien", "https://identity.zalando.com/managed-id", "aalexandre", "https://identity.zalando.com/managed-id", "matgonzalez", "https://identity.zalando.com/managed-id", "xgallegopujo", "https://identity.zalando.com/managed-id", "wchung", "https://identity.zalando.com/managed-id", "dhunt", "https://identity.zalando.com/managed-id", "brcullen", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id", "msung", "https://identity.zalando.com/managed-id", "ralmeida", "https://identity.zalando.com/managed-id", "aortega")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.213.233:9000";
+
+kube_default__setanta_category_gatekeeper_get_metrics_admins__spp_category_gatekeeper_test_pr_91_zalandoapis_com____setanta_category_gatekeeper: Path("/metrics") && Host(/^(spp-category-gatekeeper-test-pr-91[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "vobrien", "https://identity.zalando.com/managed-id", "aalexandre", "https://identity.zalando.com/managed-id", "matgonzalez", "https://identity.zalando.com/managed-id", "xgallegopujo", "https://identity.zalando.com/managed-id", "wchung", "https://identity.zalando.com/managed-id", "dhunt", "https://identity.zalando.com/managed-id", "brcullen", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id", "msung", "https://identity.zalando.com/managed-id", "ralmeida", "https://identity.zalando.com/managed-id", "aortega")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.213.233:9000";

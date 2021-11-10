@@ -1,0 +1,19 @@
+kube_default__smart_product_platform_test_gateway_put_issues_id_all__0__spp_product_details_smart_product_platform_test_zalan_do____: Path("/issues/:id") && Host(/^(spp-product-details[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("PUT") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> setResponseHeader("Content-Type", "application/problem+json")
+  -> status(501)
+  -> inlineContent("{\"title\": \"Issues Updates Not Yet Supported\", \"status\": 501}")
+  -> <shunt>;
+
+kube_default__smart_product_platform_test_gateway_put_issues_id_all__spp_product_details_smart_product_platform_test_zalan_do____smart_product_platform_test: Host(/^(spp-product-details[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

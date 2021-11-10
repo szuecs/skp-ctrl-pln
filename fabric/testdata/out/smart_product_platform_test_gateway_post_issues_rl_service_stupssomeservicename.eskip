@@ -1,0 +1,13 @@
+kube_default__smart_product_platform_test_gateway_post_issues_rl_service_stupssomeservicename__spp_product_details_smart_product_platform_test_zalan_do____smart_product_platform_test: Path("/issues") && Host(/^(spp-product-details[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(4) && JWTPayloadAllKV("sub", "stups_some-service-name")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid", "smart-product-platform-test.write")
+  -> clusterClientRatelimit("smart-product-platform-test-gateway_issues_POST_stups_some-service-name", 100, "1m", "Authorization")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

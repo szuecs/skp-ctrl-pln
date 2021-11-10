@@ -1,0 +1,12 @@
+kube_default__spp_perf_test_brand_service_post_api_brand_assignments_admins__spp_perf_test_brand_service_smart_product_platform_test_zalan_do____spp_perf_test_brand_service: Path("/api/brand-assignments") && Host(/^(spp-perf-test-brand-service[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "kanli", "https://identity.zalando.com/managed-id", "bmooney", "https://identity.zalando.com/managed-id", "egalligan", "https://identity.zalando.com/managed-id", "rlagarferrei", "https://identity.zalando.com/managed-id", "dgordon")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

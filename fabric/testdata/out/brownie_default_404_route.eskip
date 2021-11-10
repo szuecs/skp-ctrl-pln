@@ -1,0 +1,41 @@
+kube_default__brownie_default_404_route__0__brownie_smart_product_platform_test_zalan_do____: Host(/^(brownie[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__brownie_default_404_route__0__spp_logistics_data_test_zalandoapis_com____: Host(/^(spp-logistics-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__brownie_default_404_route__brownie_smart_product_platform_test_zalan_do____brownie: Host(/^(brownie[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"d17901f3-884e-49d3-9a2c-9549951e802c\",\"application_id\":\"brownie\",\"path_templates\":[\"/api/logistics-products\",\"/api/logistics-products/{id}\",\"/api/logistics-products/{id}/preferential-countries\",\"/api/periods\",\"/api/periods/{id}\"]}")
+  -> <roundRobin, "http://10.2.88.13:8080", "http://10.2.99.101:8080">;
+
+kube_default__brownie_default_404_route__brownie_smart_product_platform_test_zalan_do____brownie_https_redirect: Host(/^(brownie[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;
+
+kube_default__brownie_default_404_route__spp_logistics_data_test_zalandoapis_com____brownie: Host(/^(spp-logistics-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"d17901f3-884e-49d3-9a2c-9549951e802c\",\"application_id\":\"brownie\",\"path_templates\":[\"/api/logistics-products\",\"/api/logistics-products/{id}\",\"/api/logistics-products/{id}/preferential-countries\",\"/api/periods\",\"/api/periods/{id}\"]}")
+  -> <roundRobin, "http://10.2.88.13:8080", "http://10.2.99.101:8080">;
+
+kube_default__brownie_default_404_route__spp_logistics_data_test_zalandoapis_com____brownie_https_redirect: Host(/^(spp-logistics-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

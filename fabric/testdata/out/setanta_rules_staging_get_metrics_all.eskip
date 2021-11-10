@@ -1,0 +1,32 @@
+kube_default__setanta_rules_staging_get_metrics_all__rules_setanta_staging_zalan_do____setanta_rules_staging: Path("/metrics") && Host(/^(rules[.]setanta-staging[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"8cdf7f38-1b18-11e8-accf-0ed5f89f718b\",\"application_id\":\"setanta-rules\",\"path_templates\":[\"/api/clone\",\"/api/rules\",\"/api/rules/{rule_id}\",\"/api/rules/{rule_id}/shared\",\"/api/sales-channels/{sales_channel_id}/categories/{category_id}\",\"/api/sales-channels/{sales_channel_id}/categories/{category_id}/flatten\",\"/api/sales-channels/{sales_channel_id}/rules\",\"/api/trees/{tree_id}/rules\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> <roundRobin, "http://10.2.249.54:9000", "http://10.2.64.47:9000", "http://10.2.83.237:9000">;
+
+kube_default__setanta_rules_staging_get_metrics_all__setanta_rules_staging_smart_product_platform_test_zalan_do____setanta_rules_staging: Path("/metrics") && Host(/^(setanta-rules-staging[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"8cdf7f38-1b18-11e8-accf-0ed5f89f718b\",\"application_id\":\"setanta-rules\",\"path_templates\":[\"/api/clone\",\"/api/rules\",\"/api/rules/{rule_id}\",\"/api/rules/{rule_id}/shared\",\"/api/sales-channels/{sales_channel_id}/categories/{category_id}\",\"/api/sales-channels/{sales_channel_id}/categories/{category_id}/flatten\",\"/api/sales-channels/{sales_channel_id}/rules\",\"/api/trees/{tree_id}/rules\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> <roundRobin, "http://10.2.249.54:9000", "http://10.2.64.47:9000", "http://10.2.83.237:9000">;
+
+kube_default__setanta_rules_staging_get_metrics_all__spp_rules_test_zalandoapis_com____setanta_rules_staging: Path("/metrics") && Host(/^(spp-rules-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"8cdf7f38-1b18-11e8-accf-0ed5f89f718b\",\"application_id\":\"setanta-rules\",\"path_templates\":[\"/api/clone\",\"/api/rules\",\"/api/rules/{rule_id}\",\"/api/rules/{rule_id}/shared\",\"/api/sales-channels/{sales_channel_id}/categories/{category_id}\",\"/api/sales-channels/{sales_channel_id}/categories/{category_id}/flatten\",\"/api/sales-channels/{sales_channel_id}/rules\",\"/api/trees/{tree_id}/rules\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> <roundRobin, "http://10.2.249.54:9000", "http://10.2.64.47:9000", "http://10.2.83.237:9000">;

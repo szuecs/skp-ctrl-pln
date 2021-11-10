@@ -1,0 +1,12 @@
+kube_default__smart_product_platform_test_gateway_get_issues_id_admins__spp_product_details_smart_product_platform_test_zalan_do____smart_product_platform_test: Path("/issues/:id") && Host(/^(spp-product-details[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "assassins")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

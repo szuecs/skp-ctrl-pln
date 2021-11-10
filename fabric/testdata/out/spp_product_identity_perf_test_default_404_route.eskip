@@ -1,0 +1,8 @@
+kube_default__spp_product_identity_perf_test_default_404_route__0__spp_product_identity_perf_test_smart_product_platform_test_zalan_do____: Host(/^(spp-product-identity-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;

@@ -1,0 +1,20 @@
+kube_default__spp_homer_default_404_route_spp_homer_master_368__0__spp_homer_master_368_smart_product_platform_test_zalan_do____: Host(/^(spp-homer-master-368[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__spp_homer_default_404_route_spp_homer_master_368__spp_homer_master_368_smart_product_platform_test_zalan_do____spp_homer_master_368: Host(/^(spp-homer-master-368[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"6c65f9b1-20ca-42dd-953e-ebbdf25e024e\",\"application_id\":\"spp-homer\",\"path_templates\":[\"/internal-supplier-products\",\"/internal-supplier-products/aggregation\",\"/internal-supplier-products/last-modified\",\"/internal/aggregated-events-callhome\",\"/internal/events-callhome\",\"/supplier-products\",\"/supplier-products/{id}\"]}")
+  -> "http://10.2.66.9:8080";
+
+kube_default__spp_homer_default_404_route_spp_homer_master_368__spp_homer_master_368_smart_product_platform_test_zalan_do____spp_homer_master_368_https_redirect: Host(/^(spp-homer-master-368[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

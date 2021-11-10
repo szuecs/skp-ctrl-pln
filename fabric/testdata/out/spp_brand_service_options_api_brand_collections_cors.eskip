@@ -1,0 +1,33 @@
+kube_default__spp_brand_service_options_api_brand_collections_cors__0__spp_brand_data_test_zalandoapis_com____: Path("/api/brand-collections") && Host(/^(spp-brand-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("OPTIONS") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> enableAccessLog(4, 5)
+  -> status(204)
+  -> flowId("reuse")
+  -> corsOrigin("https://dabo-master.lounge-test.zalan.do", "https://dabo.lounge-test.zalan.do", "https://mooncake-master.lounge-test.zalan.do", "https://mooncake-freeze.lounge-test.zalan.do", "https://dabo-freeze.lounge-test.zalan.do")
+  -> appendResponseHeader("Access-Control-Allow-Methods", "POST, OPTIONS")
+  -> appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid")
+  -> <shunt>;
+
+kube_default__spp_brand_service_options_api_brand_collections_cors__0__spp_brand_service_smart_product_platform_test_zalan_do____: Path("/api/brand-collections") && Host(/^(spp-brand-service[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("OPTIONS") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> enableAccessLog(4, 5)
+  -> status(204)
+  -> flowId("reuse")
+  -> corsOrigin("https://dabo-master.lounge-test.zalan.do", "https://dabo.lounge-test.zalan.do", "https://mooncake-master.lounge-test.zalan.do", "https://mooncake-freeze.lounge-test.zalan.do", "https://dabo-freeze.lounge-test.zalan.do")
+  -> appendResponseHeader("Access-Control-Allow-Methods", "POST, OPTIONS")
+  -> appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid")
+  -> <shunt>;
+
+kube_default__spp_brand_service_options_api_brand_collections_cors__spp_brand_data_test_zalandoapis_com____spp_brand_service: Host(/^(spp-brand-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"9643f1e1-3eb0-4a8a-ab34-f653974ddd40\",\"application_id\":\"spp-brand-service\",\"path_templates\":[\"/api/brand-assignments\",\"/api/brand-assignments/{code}\",\"/api/brand-collections\",\"/api/brand-families\",\"/api/brand-families/{code}\",\"/api/brand-family-collections\",\"/api/brands\",\"/api/brands/{code}\",\"/api/brands/{code}/media\",\"/api/brands/{code}/media/default\",\"/api/brands/{code}/media/{media_code}\",\"/api/brands/{code}/media/{media_code}/content\",\"/api/media\",\"/api/media-categories\"]}")
+  -> <roundRobin, "http://10.2.14.157:9000", "http://10.2.69.70:9000">;
+
+kube_default__spp_brand_service_options_api_brand_collections_cors__spp_brand_service_smart_product_platform_test_zalan_do____spp_brand_service: Host(/^(spp-brand-service[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"9643f1e1-3eb0-4a8a-ab34-f653974ddd40\",\"application_id\":\"spp-brand-service\",\"path_templates\":[\"/api/brand-assignments\",\"/api/brand-assignments/{code}\",\"/api/brand-collections\",\"/api/brand-families\",\"/api/brand-families/{code}\",\"/api/brand-family-collections\",\"/api/brands\",\"/api/brands/{code}\",\"/api/brands/{code}/media\",\"/api/brands/{code}/media/default\",\"/api/brands/{code}/media/{media_code}\",\"/api/brands/{code}/media/{media_code}/content\",\"/api/media\",\"/api/media-categories\"]}")
+  -> <roundRobin, "http://10.2.14.157:9000", "http://10.2.69.70:9000">;

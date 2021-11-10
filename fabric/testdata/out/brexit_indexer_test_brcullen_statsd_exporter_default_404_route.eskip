@@ -1,0 +1,19 @@
+kube_default__brexit_indexer_test_brcullen_statsd_exporter_default_404_route__0__brexit_indexer_test_brcullen_statsd_exporter_smart_product_platform_test_zalan_do____: Host(/^(brexit-indexer-test-brcullen-statsd-exporter[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__brexit_indexer_test_brcullen_statsd_exporter_default_404_route__brexit_indexer_test_brcullen_statsd_exporter_smart_product_platform_test_zalan_do____brexit_indexer_test_brcullen_statsd_exporter: Host(/^(brexit-indexer-test-brcullen-statsd-exporter[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> "http://10.2.19.205:9102";
+
+kube_default__brexit_indexer_test_brcullen_statsd_exporter_default_404_route__brexit_indexer_test_brcullen_statsd_exporter_smart_product_platform_test_zalan_do____brexit_indexer_test_brcullen_statsd_exporter_https_redirect: Host(/^(brexit-indexer-test-brcullen-statsd-exporter[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;

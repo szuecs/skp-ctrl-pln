@@ -1,0 +1,23 @@
+kube_default__setanta_spp_orchestrator_staging_get_swagger_yaml_admins__setanta_spp_orchestrator_staging_smart_product_platform_test_zalan_do____setanta_spp_orchestrator_staging: Path("/swagger.yaml") && Host(/^(setanta-spp-orchestrator-staging[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "pcamposdesiq", "https://identity.zalando.com/managed-id", "aalexandre", "https://identity.zalando.com/managed-id", "jocarroll", "https://identity.zalando.com/managed-id", "matgonzalez", "https://identity.zalando.com/managed-id", "gwaldmann", "https://identity.zalando.com/managed-id", "rtawari", "https://identity.zalando.com/managed-id", "ophelan", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id", "jwawszczak", "https://identity.zalando.com/managed-id", "ashaikh", "https://identity.zalando.com/managed-id", "dlopes", "https://identity.zalando.com/managed-id", "vkocherga", "https://identity.zalando.com/managed-id", "lcrowe", "https://identity.zalando.com/managed-id", "dmiaroslavsk", "https://identity.zalando.com/managed-id", "sborzenko", "https://identity.zalando.com/managed-id", "aalvarez", "https://identity.zalando.com/managed-id", "snesterenko")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"c9071412-dee1-4e21-be6f-7ef772cfa044\",\"application_id\":\"\",\"tag\":\"spp-orchestrator\",\"path_templates\":[\"/products/{product_id}\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.69.71:8080";
+
+kube_default__setanta_spp_orchestrator_staging_get_swagger_yaml_admins__spp_orchestrator_test_zalandoapis_com____setanta_spp_orchestrator_staging: Path("/swagger.yaml") && Host(/^(spp-orchestrator-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "pcamposdesiq", "https://identity.zalando.com/managed-id", "aalexandre", "https://identity.zalando.com/managed-id", "jocarroll", "https://identity.zalando.com/managed-id", "matgonzalez", "https://identity.zalando.com/managed-id", "gwaldmann", "https://identity.zalando.com/managed-id", "rtawari", "https://identity.zalando.com/managed-id", "ophelan", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id", "jwawszczak", "https://identity.zalando.com/managed-id", "ashaikh", "https://identity.zalando.com/managed-id", "dlopes", "https://identity.zalando.com/managed-id", "vkocherga", "https://identity.zalando.com/managed-id", "lcrowe", "https://identity.zalando.com/managed-id", "dmiaroslavsk", "https://identity.zalando.com/managed-id", "sborzenko", "https://identity.zalando.com/managed-id", "aalvarez", "https://identity.zalando.com/managed-id", "snesterenko")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"c9071412-dee1-4e21-be6f-7ef772cfa044\",\"application_id\":\"\",\"tag\":\"spp-orchestrator\",\"path_templates\":[\"/products/{product_id}\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.69.71:8080";

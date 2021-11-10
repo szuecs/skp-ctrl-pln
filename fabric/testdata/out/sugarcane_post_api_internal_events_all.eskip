@@ -1,0 +1,21 @@
+kube_default__sugarcane_post_api_internal_events_all__spp_commodity_group_data_test_zalandoapis_com____sugarcane: Path("/api/internal/events") && Host(/^(spp-commodity-group-data-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"fad12556-3cf7-4e33-ae0b-e4f11adf3db6\",\"application_id\":\"sugarcane\",\"path_templates\":[\"/api/commodity-groups\",\"/api/commodity-groups/{cg_code}\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid", "fabric-event-scheduler.read")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> <roundRobin, "http://10.2.80.37:8080", "http://10.2.88.161:8080">;
+
+kube_default__sugarcane_post_api_internal_events_all__sugarcane_smart_product_platform_test_zalan_do____sugarcane: Path("/api/internal/events") && Host(/^(sugarcane[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"fad12556-3cf7-4e33-ae0b-e4f11adf3db6\",\"application_id\":\"sugarcane\",\"path_templates\":[\"/api/commodity-groups\",\"/api/commodity-groups/{cg_code}\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid", "fabric-event-scheduler.read")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> <roundRobin, "http://10.2.80.37:8080", "http://10.2.88.161:8080">;

@@ -1,0 +1,13 @@
+kube_default__spp_product_search_pre_prod_get_api_product_queries_wildcard_rl_all_spp_product_search_pre_prod_master_299__spp_product_search_pre_prod_master_299_smart_product_platform_test_zalan_do____spp_product_search_pre_prod_master_299: Path("/api/product-queries/**") && Host(/^(spp-product-search-pre-prod-master-299[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> clusterClientRatelimit("spp-product-search-pre-prod_api-product-queries-wildcard_GET", 100, "1m", "Authorization")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

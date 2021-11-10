@@ -1,0 +1,23 @@
+kube_default__spp_product_search_spilo_get_api_product_queries_wildcard_all__spp_product_search_spilo_smart_product_platform_test_zalan_do____spp_product_search_spilo: Path("/api/product-queries/**") && Host(/^(spp-product-search-spilo[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;
+
+kube_default__spp_product_search_spilo_get_api_product_queries_wildcard_all__spp_product_search_spilo_test_zalandoapis_com____spp_product_search_spilo: Path("/api/product-queries/**") && Host(/^(spp-product-search-spilo-test[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

@@ -1,0 +1,12 @@
+kube_default__spp_homer_get_internal_supplier_products_last_modified_admins_spp_homer_master_367__spp_homer_master_367_smart_product_platform_test_zalan_do____spp_homer_master_367: Path("/internal-supplier-products/last-modified") && Host(/^(spp-homer-master-367[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "aalexandre", "https://identity.zalando.com/managed-id", "gcarta", "https://identity.zalando.com/managed-id", "kanli", "https://identity.zalando.com/managed-id", "bmooney", "https://identity.zalando.com/managed-id", "egalligan", "https://identity.zalando.com/managed-id", "rlagarferrei", "https://identity.zalando.com/managed-id", "msung", "https://identity.zalando.com/managed-id", "dgordon", "https://identity.zalando.com/managed-id", "aortega")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

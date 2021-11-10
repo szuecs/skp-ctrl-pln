@@ -1,0 +1,19 @@
+kube_default__setanta_category_gatekeeper_patch_api_wildcard_service_stupscategorytests__category_gatekeeper_pr_91_smart_product_platform_test_zalan_do____setanta_category_gatekeeper: Path("/api/**") && Host(/^(category-gatekeeper-pr-91[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("PATCH") && Header("X-Forwarded-Proto", "https") && Weight(4) && JWTPayloadAllKV("sub", "stups_category-tests")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid", "category-gatekeeper.categories.write")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.213.233:9000";
+
+kube_default__setanta_category_gatekeeper_patch_api_wildcard_service_stupscategorytests__spp_category_gatekeeper_test_pr_91_zalandoapis_com____setanta_category_gatekeeper: Path("/api/**") && Host(/^(spp-category-gatekeeper-test-pr-91[.]zalandoapis[.]com[.]?(:[0-9]+)?)$/) && Method("PATCH") && Header("X-Forwarded-Proto", "https") && Weight(4) && JWTPayloadAllKV("sub", "stups_category-tests")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid", "category-gatekeeper.categories.write")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.213.233:9000";

@@ -1,0 +1,11 @@
+kube_default__spp_perf_test_brand_service_get_api_brands_id_media_all__spp_perf_test_brand_service_smart_product_platform_test_zalan_do____spp_perf_test_brand_service: Path("/api/brands/:id/media") && Host(/^(spp-perf-test-brand-service[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

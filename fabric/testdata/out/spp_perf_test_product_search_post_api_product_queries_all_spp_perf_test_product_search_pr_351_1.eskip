@@ -1,0 +1,11 @@
+kube_default__spp_perf_test_product_search_post_api_product_queries_all_spp_perf_test_product_search_pr_351_1__spp_perf_test_product_search_pr_351_1_smart_product_platform_test_zalan_do____spp_perf_test_product_search_pr_351_1: Path("/api/product-queries") && Host(/^(spp-perf-test-product-search-pr-351-1[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

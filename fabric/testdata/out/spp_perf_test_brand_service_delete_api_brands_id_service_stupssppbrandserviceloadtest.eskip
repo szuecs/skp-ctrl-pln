@@ -1,0 +1,11 @@
+kube_default__spp_perf_test_brand_service_delete_api_brands_id_service_stupssppbrandserviceloadtest__spp_perf_test_brand_service_smart_product_platform_test_zalan_do____spp_perf_test_brand_service: Path("/api/brands/:id") && Host(/^(spp-perf-test-brand-service[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("DELETE") && Header("X-Forwarded-Proto", "https") && Weight(4) && JWTPayloadAllKV("sub", "stups_spp-brand-service-loadtest")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

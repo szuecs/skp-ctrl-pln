@@ -1,0 +1,13 @@
+kube_default__spp_homer_post_api_supplier_products_rl_users_all_spp_homer_master_367__spp_homer_master_367_smart_product_platform_test_zalan_do____spp_homer_master_367: Path("/api/supplier-products") && Host(/^(spp-homer-master-367[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(4) && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "cgallagher", "https://identity.zalando.com/managed-id", "operbellini", "https://identity.zalando.com/managed-id", "soceanainn", "https://identity.zalando.com/managed-id", "dagordon", "https://identity.zalando.com/managed-id", "zszekely", "https://identity.zalando.com/managed-id", "matgonzalez", "https://identity.zalando.com/managed-id", "brcullen", "https://identity.zalando.com/managed-id", "psuchon", "https://identity.zalando.com/managed-id", "spramanick", "https://identity.zalando.com/managed-id", "fmoloney", "https://identity.zalando.com/managed-id", "ralmeida", "https://identity.zalando.com/managed-id", "snesterenko")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> clusterClientRatelimit("spp-homer_api-supplier-products_POST_users", 3000, "1m", "Authorization")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> status(502)
+  -> inlineContent("no endpoints")
+  -> <shunt>;

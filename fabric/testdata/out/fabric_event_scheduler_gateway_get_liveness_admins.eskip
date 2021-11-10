@@ -1,0 +1,11 @@
+kube_default__fabric_event_scheduler_gateway_get_liveness_admins__fabric_event_streams_smart_product_platform_test_zalan_do____fabric_event_scheduler: Path("/liveness") && Host(/^(fabric-event-streams[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "fmoloney", "https://identity.zalando.com/managed-id", "bmooney", "https://identity.zalando.com/managed-id", "cgallagher")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"32a1cd3e-0966-4178-b22d-0536f1354be0\",\"application_id\":\"fabric-event-scheduler\",\"path_templates\":[\"/api/refeed\",\"/api/unsent-events\",\"/api/unsent-events/{id}\"]}")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> enableAccessLog(2, 4, 5)
+  -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
+  -> oauthTokeninfoAllScope("uid")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.1.237:8080";

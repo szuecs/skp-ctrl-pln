@@ -1,0 +1,13 @@
+kube_default__fabric_demo_app_reject_http_route__0__fabric_demo_app_smart_product_platform_test_zalan_do____: Host(/^(fabric-demo-app[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> unverifiedAuditLog("sub")
+  -> status(400)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
+  -> <shunt>;
+
+kube_default__fabric_demo_app_reject_http_route__fabric_demo_app_smart_product_platform_test_zalan_do____fabric_demo_app: Host(/^(fabric-demo-app[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"f445d2f9-d7cd-481a-9784-8ed63c38d3da\",\"application_id\":\"fabric-demo-app\",\"path_templates\":[\"/api/contributors\",\"/api/contributors/{id}\",\"/api/organisations\",\"/api/organisations/{id}\",\"/api/organisations/{parent-id}/contributors\",\"/api/organisations/{parent-id}/contributors/{id}\"]}")
+  -> "http://10.2.14.155:8080";

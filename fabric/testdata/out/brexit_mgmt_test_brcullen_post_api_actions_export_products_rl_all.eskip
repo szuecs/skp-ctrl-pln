@@ -1,0 +1,12 @@
+kube_default__brexit_mgmt_test_brcullen_post_api_actions_export_products_rl_all__brexit_mgmt_test_brcullen_smart_product_platform_test_zalan_do____brexit_mgmt_test_brcullen: Path("/api/actions/export-products") && Host(/^(brexit-mgmt-test-brcullen[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("POST") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"d9a04d71-ab1d-47cc-b492-ea2e8250bdee\",\"application_id\":\"brexit\",\"path_templates\":[\"/actions/export-products\",\"/classification-status\"]}")
+  -> inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+  -> unverifiedAuditLog("sub")
+  -> oauthTokeninfoAllScope("uid", "brexit-mgmt.write")
+  -> clusterClientRatelimit("brexit-mgmt-test-brcullen_api-actions-export-products_POST", 10000, "1m", "Authorization")
+  -> flowId("reuse")
+  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+  -> "http://10.2.19.213:8080";

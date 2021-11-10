@@ -1,0 +1,20 @@
+kube_default__fabric_event_scheduler_gateway_default_404_route__0__fabric_event_streams_smart_product_platform_test_zalan_do____: Host(/^(fabric-event-streams[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> oauthTokeninfoAllScope("uid")
+  -> unverifiedAuditLog("sub")
+  -> status(404)
+  -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
+  -> <shunt>;
+
+kube_default__fabric_event_scheduler_gateway_default_404_route__fabric_event_streams_smart_product_platform_test_zalan_do____fabric_event_scheduler: Host(/^(fabric-event-streams[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> apiUsageMonitoring("{\"api_id\":\"32a1cd3e-0966-4178-b22d-0536f1354be0\",\"application_id\":\"fabric-event-scheduler\",\"path_templates\":[\"/api/refeed\",\"/api/unsent-events\",\"/api/unsent-events/{id}\"]}")
+  -> "http://10.2.1.237:8080";
+
+kube_default__fabric_event_scheduler_gateway_default_404_route__fabric_event_streams_smart_product_platform_test_zalan_do____fabric_event_scheduler_https_redirect: Host(/^(fabric-event-streams[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
+  -> enableAccessLog(4, 5)
+  -> lifo(30000, 50000, "3s")
+  -> redirectTo(308, "https:")
+  -> <shunt>;
