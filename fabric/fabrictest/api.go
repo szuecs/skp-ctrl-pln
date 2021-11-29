@@ -8,7 +8,7 @@ import (
 	"regexp"
 
 	yaml2 "github.com/ghodss/yaml"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/zalando/skipper/dataclients/kubernetes"
 )
