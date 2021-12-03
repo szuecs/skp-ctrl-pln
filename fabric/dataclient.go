@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -205,14 +204,25 @@ func (c *clusterClient) getJSON(uri string, a interface{}) error {
 	}
 
 	b := bytes.NewBuffer(nil)
-	if _, err = io.Copy(b, rsp.Body); err != nil {
+	if n, err := io.Copy(b, rsp.Body); err != nil {
 		log.Debugf("reading response body failed: %v", err)
 		return err
+	} else {
+		log.Infof("copied %d byte from response body", n)
 	}
+	buf := b.Bytes()
+	log.Infof("before json.Unmarshal %d", len(buf))
+	//fmt.Fprintf(os.Stdout, "%s\n", buf)
 
-	err = json.Unmarshal(b.Bytes(), a)
+	a, err = ParseFabricJSON(buf)
+	//err = json.Unmarshal(buf, a)
 	if err != nil {
 		log.Debugf("invalid response format: %v", err)
+		return err
+	}
+	f, ok := a.(*Fabric)
+	if ok {
+		println("len path:", f)
 	}
 
 	return err
@@ -224,6 +234,7 @@ func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
 	var fl FabricList
 	err := c.getJSON(FabricGatewayURI, &fl)
 	if err != nil {
+		println("getJSON returns err:", err.Error())
 		return nil, err
 	}
 

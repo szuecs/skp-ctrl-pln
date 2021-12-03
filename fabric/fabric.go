@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,15 +60,19 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 		println("fps nil:", len(value))
 		return nil
 	}
+	println("FabricPaths.UnmarshalJSON 1")
+
 	var h map[string]interface{}
 	err := json.Unmarshal(value, &h)
 	if err != nil {
 		log.Fatalf("Failed to unmarshal: %v", err)
 		return err
 	}
+	println("FabricPaths.UnmarshalJSON 2")
 
 	fps.Path = make([]*FabricPath, 0, len(h))
 	for p, ve := range h {
+		println("FabricPaths.UnmarshalJSON 3")
 		fmes, ok := ve.(map[string]interface{})
 		if !ok {
 			log.Fatalf("type assertion of ve %T to 'map[string]interface{}' was not ok", ve)
@@ -75,18 +80,25 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 		}
 		fms := make([]*FabricMethod, 0, len(fmes))
 		for method, fme := range fmes {
+			println("FabricPaths.UnmarshalJSON 4")
 			fmoes, ok := fme.(map[string]interface{})
 			if !ok {
 				log.Fatalf("type assertion of fme %T to 'map[string]interface{}' was not ok", fme)
 				continue
 			}
+			println("FabricPaths.UnmarshalJSON 4.1:", len(fmoes))
+			fm := FabricMethod{
+				Method: method,
+			}
 
 			for k, fmoe := range fmoes {
-				fm := FabricMethod{
-					Method: method,
-				}
+				println("FabricPaths.UnmarshalJSON 5")
+
+				fmt.Printf("Found '%s' for method '%s' in path '%s'\n", k, method, p)
+				println("FabricPaths.UnmarshalJSON 6")
 				switch k {
 				case "x-fabric-privileges":
+					log.Infof("Found x-fabric-privileges for method '%s' in path '%s'", method, p)
 					privse, ok := fmoe.([]interface{})
 					if !ok {
 						log.Fatalf("type assertion privse for x-fabric-privileges was not ok: %v", fmoe)
@@ -294,19 +306,21 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 					log.Warnf("Unknown FabricMethod member: '%s' for %v", k, fmoe)
 				}
 
-				// validation
-				if err := validateMethod(&fm); err != nil {
-					return fmt.Errorf("invalid method '%s' for path '%s': %w", fm.Method, p, err)
-				}
-
-				fms = append(fms, &fm)
 			}
+			// validation
+			if err := validateMethod(&fm); err != nil {
+				return fmt.Errorf("invalid method '%s' for path '%s': %w", fm.Method, p, err)
+			}
+
+			fms = append(fms, &fm)
 		}
 
 		if len(fms) == 0 {
+			println("len(fms) is 0")
 			return fmt.Errorf("invalid number of methods %d for path %s, min required 1", len(fms), p)
 		}
 		if len(p) == 0 {
+			println("len(p) is 0")
 			return fmt.Errorf("invalid path, min length required 1")
 		}
 
@@ -315,6 +329,7 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 			Methods: fms,
 		}
 		fps.Path = append(fps.Path, &fp)
+		println("found path:", p)
 	}
 
 	if len(fps.Path) == 0 {
@@ -333,13 +348,14 @@ func validateEmployeeAccess(ea *FabricEmployeeAccess) error {
 			}
 		case "allow_all", "deny_all":
 		default:
-			return fmt.Errorf("invalid x-fabric-employee-access: %s", ea.Type)
+			return fmt.Errorf("invalid x-fabric-employee-access unknown type: '%s'", ea.Type)
 		}
 	}
 	return nil
 }
 
 func validateMethod(fm *FabricMethod) error {
+	spew.Dump(fm)
 	if err := validateEmployeeAccess(fm.EmployeeAccess); err != nil {
 		return err
 	}
@@ -452,20 +468,26 @@ type FabricStatus struct {
 func ParseFabricJSON(b []byte) (*Fabric, error) {
 	var fg Fabric
 	err := json.Unmarshal(b, &fg)
-	println("b: ", string(b))
+	//println("b:", string(b))
 	if err != nil {
-		println(err.Error())
+		println("ParseFabricJSON err:", err.Error())
 		return nil, err
 	}
+	println("before validate:", fg.Spec)
 	err = validateFabricResource(&fg)
 	if err != nil {
-		return nil, fmt.Errorf("invalid fabric resource %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
+		println("validation error:", err.Error())
+		return nil, fmt.Errorf("invalid fabric resource: %w", err)
+		//return nil, fmt.Errorf("invalid fabric resource %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
 	}
 
 	return &fg, nil
 }
 
 func validateFabricResource(fg *Fabric) error {
+	if fg == nil || fg.Spec == nil || fg.Spec.Paths == nil || len(fg.Spec.Paths.Path) == 0 {
+		return fmt.Errorf("something nil: %v %v", fg, fg.Spec)
+	}
 	if esp := fg.Spec.ExternalServiceProvider; esp != nil {
 		if len(esp.Hosts) == 0 {
 			return fmt.Errorf("invalid x-external-service-provider number of hosts 0 for in fabric %s/%s", fg.Metadata.Namespace, fg.Metadata.Name)

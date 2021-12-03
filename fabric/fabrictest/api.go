@@ -7,9 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/davecgh/go-spew/spew"
 	yaml2 "github.com/ghodss/yaml"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/szuecs/skp-ctrl-pln/fabric"
@@ -66,69 +64,41 @@ func NewAPI(o TestAPIOptions, specs ...io.Reader) (*api, error) {
 	all := make(map[string][]interface{})
 
 	for _, spec := range specs {
-		// b := make([]byte, 6050)
-		// n, err := spec.Read(b)
-		// if err != nil {
-		// 	logrus.Fatalf("Failed to read b: %v", err)
-		// } else {
-		// 	logrus.Infof("Read %d bytes", n)
-		// }
-
-		// f, err := fabric.ParseFabricJSON(b)
-		// if err != nil {
-		// 	logrus.Fatalf("Failed to parse json: %v", err)
-		// }
-		// logrus.Infof("num paths: %d", f.Spec.Paths)
-		// continue
-
 		d := yaml.NewDecoder(spec)
-		for {
-			var o map[string]interface{}
-			if err := d.Decode(&o); err == io.EOF || err == nil && len(o) == 0 {
-				logrus.Printf("decode eof(%v) errNil(%v) len(o)=%d", err == io.EOF, err == nil, len(o))
-				break
-			} else if err != nil {
-				println("found err:", err.Error)
-				return nil, err
-			}
 
-			kind, ok := o["kind"].(string)
-			if !ok {
-				println("kind")
-				spew.Dump(o)
-				return nil, errInvalidFixture
-			}
-
-			meta, ok := o["metadata"].(map[interface{}]interface{})
-			if !ok {
-				println("metadata")
-				spew.Dump(meta)
-				return nil, errInvalidFixture
-			}
-
-			namespace, ok := meta["namespace"]
-			if !ok || namespace == "" {
-				namespace = "default"
-			} else {
-				if _, ok := namespace.(string); !ok {
-					println("namespace")
-					spew.Dump(meta)
-					return nil, errInvalidFixture
-				}
-			}
-
-			ns := namespace.(string)
-			if _, ok := namespaces[ns]; !ok {
-				namespaces[ns] = make(map[string][]interface{})
-			}
-
-			namespaces[ns][kind] = append(namespaces[ns][kind], o)
-			all[kind] = append(all[kind], o)
-			if name, ok := meta["name"]; ok {
-				println("name:", name.(string), ns, kind)
-			}
-			println("HERE:", kind)
+		var o map[string]interface{}
+		if err := d.Decode(&o); err == io.EOF || err == nil {
+			//logrus.Printf("kind: %v, metadata: %v", o["kind"], o["metadata"])
+		} else if err != nil {
+			return nil, err
 		}
+
+		kind, ok := o["kind"].(string)
+		if !ok {
+			return nil, errInvalidFixture
+		}
+
+		meta, ok := o["metadata"].(map[interface{}]interface{})
+		if !ok {
+			return nil, errInvalidFixture
+		}
+
+		namespace, ok := meta["namespace"]
+		if !ok || namespace == "" {
+			namespace = "default"
+		} else {
+			if _, ok := namespace.(string); !ok {
+				return nil, errInvalidFixture
+			}
+		}
+
+		ns := namespace.(string)
+		if _, ok := namespaces[ns]; !ok {
+			namespaces[ns] = make(map[string][]interface{})
+		}
+
+		namespaces[ns][kind] = append(namespaces[ns][kind], o)
+		all[kind] = append(all[kind], o)
 	}
 
 	for ns, kinds := range namespaces {
@@ -164,10 +134,10 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path == kubernetes.ZalandoResourcesClusterURI {
-		w.Write(a.resourceList)
-		return
-	}
+	// if r.URL.Path == kubernetes.ZalandoResourcesClusterURI {
+	// 	w.Write(a.resourceList)
+	// 	return
+	// }
 
 	parts := a.pathRx.FindStringSubmatch(r.URL.Path)
 	if len(parts) == 0 {
@@ -187,6 +157,7 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "ingresses":
 		b = ns.ingresses
 	case "fabricgateways":
+		println("ns.fabricgateways")
 		b = ns.fabricgateways
 	case "routegroups":
 		b = ns.routeGroups
@@ -197,7 +168,7 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(b)
+	w.Write(b[len(`{"items":[`) : len(b)-2])
 }
 
 func initNamespace(kinds map[string][]interface{}) (ns namespace, err error) {
@@ -209,8 +180,7 @@ func initNamespace(kinds map[string][]interface{}) (ns namespace, err error) {
 		return
 	}
 
-	println("kinds:", kinds, kinds["FabricGateways"])
-	if err = itemsJSON(&ns.fabricgateways, kinds["FabricGateways"]); err != nil {
+	if err = itemsJSON(&ns.fabricgateways, kinds["FabricGateway"]); err != nil {
 		return
 	}
 
@@ -227,7 +197,6 @@ func initNamespace(kinds map[string][]interface{}) (ns namespace, err error) {
 
 func itemsJSON(b *[]byte, o []interface{}) error {
 	items := map[string]interface{}{"items": o}
-	println(o)
 
 	// converting back to YAML, because we have YAMLToJSON() for bytes, and
 	// the data in `o` contains YAML parser style keys of type interface{}
@@ -237,9 +206,6 @@ func itemsJSON(b *[]byte, o []interface{}) error {
 	}
 
 	*b, err = yaml2.YAMLToJSON(y)
-	if err == nil {
-		println(string(*b))
-	}
 	return err
 }
 
