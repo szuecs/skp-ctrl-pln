@@ -93,10 +93,10 @@ func rangeOverFixtures(t *testing.T, dir string, fs []os.FileInfo, test func(fix
 			}
 
 			switch filepath.Ext(n) {
-			// case ".yaml":
-			// 	fixtures.resources = filepath.Join(dir, n)
-			case ".json":
+			case ".yaml":
 				fixtures.resources = filepath.Join(dir, n)
+			// case ".json":
+			// 	fixtures.resources = filepath.Join(dir, n)
 			case ".eskip":
 				fixtures.eskip = filepath.Join(dir, n)
 			case ".api":

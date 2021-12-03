@@ -81,7 +81,7 @@ func NewAPI(o TestAPIOptions, specs ...io.Reader) (*api, error) {
 		// logrus.Infof("num paths: %d", f.Spec.Paths)
 		// continue
 
-		d := json.NewDecoder(spec)
+		d := yaml.NewDecoder(spec)
 		for {
 			var o map[string]interface{}
 			if err := d.Decode(&o); err == io.EOF || err == nil && len(o) == 0 {
