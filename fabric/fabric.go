@@ -54,7 +54,9 @@ type FabricPaths struct {
 }
 
 func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
+	println("FabricPaths.UnmarshalJSON")
 	if fps == nil {
+		println("fps nil:", len(value))
 		return nil
 	}
 	var h map[string]interface{}
@@ -447,10 +449,12 @@ type FabricStatus struct {
 	OwnedIngressNames    []string `json:"owned_ingress_names"`
 }
 
-func ParseFabricJSON(d []byte) (*Fabric, error) {
+func ParseFabricJSON(b []byte) (*Fabric, error) {
 	var fg Fabric
-	err := json.Unmarshal(d, &fg)
+	err := json.Unmarshal(b, &fg)
+	println("b: ", string(b))
 	if err != nil {
+		println(err.Error())
 		return nil, err
 	}
 	err = validateFabricResource(&fg)

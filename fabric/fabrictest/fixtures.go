@@ -93,7 +93,9 @@ func rangeOverFixtures(t *testing.T, dir string, fs []os.FileInfo, test func(fix
 			}
 
 			switch filepath.Ext(n) {
-			case ".yaml":
+			// case ".yaml":
+			// 	fixtures.resources = filepath.Join(dir, n)
+			case ".json":
 				fixtures.resources = filepath.Join(dir, n)
 			case ".eskip":
 				fixtures.eskip = filepath.Join(dir, n)
@@ -165,8 +167,11 @@ func compileRegexps(s []string) ([]*regexp.Regexp, error) {
 }
 
 func testFixture(t *testing.T, f fixtureSet) {
+	println("f.name:", f.name, "f.resources:", f.resources, "f.api:", f.api, "f.eskip:", f.eskip)
+
 	var resources []io.Reader
 	if f.resources != "" {
+		t.Logf("f.resources: %s", f.resources)
 		r, err := os.Open(f.resources)
 		if err != nil {
 			t.Fatal(err)
@@ -178,6 +183,7 @@ func testFixture(t *testing.T, f fixtureSet) {
 
 	var apiOptions TestAPIOptions
 	if f.api != "" {
+		t.Logf("f.api: %s", f.api)
 		a, err := os.Open(f.api)
 		if err != nil {
 			t.Fatal(err)
@@ -192,7 +198,7 @@ func testFixture(t *testing.T, f fixtureSet) {
 
 	a, err := NewAPI(apiOptions, resources...)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to create API: %v", err)
 	}
 
 	s := httptest.NewServer(a)
@@ -210,7 +216,10 @@ func testFixture(t *testing.T, f fixtureSet) {
 		}
 	}()
 
-	c, err := fabric.NewFabricDataClient()
+	o := fabric.Options{
+		KubernetesURL: s.URL,
+	}
+	c, err := fabric.NewFabricDataClient(o)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,6 +227,7 @@ func testFixture(t *testing.T, f fixtureSet) {
 
 	routes, err := c.LoadAll()
 	if f.eskip != "" {
+		println("check f.eskip", f.eskip)
 		eskp, err := os.Open(f.eskip)
 		if err != nil {
 			t.Fatal(err)
@@ -253,7 +263,7 @@ func testFixture(t *testing.T, f fixtureSet) {
 	}
 
 	if f.error == "" && err != nil {
-		t.Fatal(err)
+		t.Fatalf("Test fabricgateway %s: %v", f.name, err)
 	} else if f.error != "" {
 		var msg string
 		if err != nil {
@@ -302,6 +312,7 @@ func FixturesToTest(t *testing.T, dirs ...string) {
 
 		rangeOverFixtures(t, dir, fs, func(f fixtureSet) {
 			t.Run(f.name, func(t *testing.T) {
+				println("f.name:", f.name)
 				testFixture(t, f)
 			})
 		})
