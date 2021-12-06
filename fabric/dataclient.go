@@ -204,14 +204,11 @@ func (c *clusterClient) getJSON(uri string, a interface{}) error {
 	}
 
 	b := bytes.NewBuffer(nil)
-	if n, err := io.Copy(b, rsp.Body); err != nil {
+	if _, err := io.Copy(b, rsp.Body); err != nil {
 		log.Debugf("reading response body failed: %v", err)
 		return err
-	} else {
-		log.Infof("copied %d byte from response body", n)
 	}
 	buf := b.Bytes()
-	log.Infof("before json.Unmarshal %d", len(buf))
 	//fmt.Fprintf(os.Stdout, "%s\n", buf)
 
 	a, err = ParseFabricJSON(buf)
@@ -222,23 +219,21 @@ func (c *clusterClient) getJSON(uri string, a interface{}) error {
 	}
 	f, ok := a.(*Fabric)
 	if ok {
-		println("len path:", f)
+		println("len path:", len(f.Spec.Paths.Path))
 	}
 
 	return err
 }
 
 func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
-	println("loadFabricgateways")
 	// GET all fabric
 	var fl FabricList
 	err := c.getJSON(FabricGatewayURI, &fl)
 	if err != nil {
-		println("getJSON returns err:", err.Error())
 		return nil, err
 	}
 
-	println(len(fl.Items))
+	println("FabricList len(items):", len(fl.Items))
 
 	// for all fabric resources do:
 	//   func ParseFabricJSON(d []byte) (*Fabric, error) {

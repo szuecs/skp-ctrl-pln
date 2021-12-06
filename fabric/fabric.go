@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -55,12 +54,9 @@ type FabricPaths struct {
 }
 
 func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
-	println("FabricPaths.UnmarshalJSON")
 	if fps == nil {
-		println("fps nil:", len(value))
 		return nil
 	}
-	println("FabricPaths.UnmarshalJSON 1")
 
 	var h map[string]interface{}
 	err := json.Unmarshal(value, &h)
@@ -68,11 +64,9 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 		log.Fatalf("Failed to unmarshal: %v", err)
 		return err
 	}
-	println("FabricPaths.UnmarshalJSON 2")
 
 	fps.Path = make([]*FabricPath, 0, len(h))
 	for p, ve := range h {
-		println("FabricPaths.UnmarshalJSON 3")
 		fmes, ok := ve.(map[string]interface{})
 		if !ok {
 			log.Fatalf("type assertion of ve %T to 'map[string]interface{}' was not ok", ve)
@@ -80,22 +74,18 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 		}
 		fms := make([]*FabricMethod, 0, len(fmes))
 		for method, fme := range fmes {
-			println("FabricPaths.UnmarshalJSON 4")
 			fmoes, ok := fme.(map[string]interface{})
 			if !ok {
 				log.Fatalf("type assertion of fme %T to 'map[string]interface{}' was not ok", fme)
 				continue
 			}
-			println("FabricPaths.UnmarshalJSON 4.1:", len(fmoes))
 			fm := FabricMethod{
 				Method: method,
 			}
 
 			for k, fmoe := range fmoes {
-				println("FabricPaths.UnmarshalJSON 5")
 
-				fmt.Printf("Found '%s' for method '%s' in path '%s'\n", k, method, p)
-				println("FabricPaths.UnmarshalJSON 6")
+				log.Debugf("Found '%s' for method '%s' in path '%s'", k, method, p)
 				switch k {
 				case "x-fabric-privileges":
 					log.Infof("Found x-fabric-privileges for method '%s' in path '%s'", method, p)
@@ -316,11 +306,9 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 		}
 
 		if len(fms) == 0 {
-			println("len(fms) is 0")
 			return fmt.Errorf("invalid number of methods %d for path %s, min required 1", len(fms), p)
 		}
 		if len(p) == 0 {
-			println("len(p) is 0")
 			return fmt.Errorf("invalid path, min length required 1")
 		}
 
@@ -329,7 +317,6 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 			Methods: fms,
 		}
 		fps.Path = append(fps.Path, &fp)
-		println("found path:", p)
 	}
 
 	if len(fps.Path) == 0 {
@@ -347,6 +334,12 @@ func validateEmployeeAccess(ea *FabricEmployeeAccess) error {
 				return fmt.Errorf("invalid x-fabric-employee-access user-list has no entry")
 			}
 		case "allow_all", "deny_all":
+		case "":
+			// TODO(sszuecs): ignore but cross check with
+			// team fabric. CRD says it should be an
+			// error, but the truth is it is populating
+			// the userList, see "sugarcane fabric as an
+			// example
 		default:
 			return fmt.Errorf("invalid x-fabric-employee-access unknown type: '%s'", ea.Type)
 		}
@@ -355,13 +348,38 @@ func validateEmployeeAccess(ea *FabricEmployeeAccess) error {
 }
 
 func validateMethod(fm *FabricMethod) error {
-	spew.Dump(fm)
 	if err := validateEmployeeAccess(fm.EmployeeAccess); err != nil {
 		return err
 	}
 
 	if n := len(fm.Privileges); n == 0 {
-		return fmt.Errorf("invalid number of x-fabric-privileges %d", n)
+		/*
+				   TODO(sszuecs): ignore, but needs cross check with
+				   team fabric.  this config exists in
+				   "spp-perf-test-brand-service", which seems to be
+				   wrong by reviwing CRD spec description. But also in
+				   valid cases like:
+			 - Another case, which generates routes for all
+			   employees and services that have uid scope in their
+			   token: /hello: get: {}
+			   This is specified in fabricgateway name: smart-product-platform-test-gateway in
+			   namespace: default Are these routes expected or is this an error?
+			   My validation that I translated from CRD description says it's wrong, but maybe the documentation is just outdated.
+
+			   The last one seems to be on purpose, because of other gateways (fabric-event-scheduler-gateway) use this feature to allow /health access:
+			   /health:
+			     get: {}
+
+			Same for health in setanta-categories-staging and /metrics in setanta-category-gatekeeper
+
+			/api/brands/*:
+			  delete:
+			    x-fabric-whitelist:
+			      service-list:
+			      - stups_spp-brand-service-loadtest
+
+		*/
+		//return fmt.Errorf("invalid number of x-fabric-privileges %d", n)
 	}
 
 	if fm.Ratelimit != nil {
@@ -466,22 +484,21 @@ type FabricStatus struct {
 }
 
 func ParseFabricJSON(b []byte) (*Fabric, error) {
-	var fg Fabric
-	err := json.Unmarshal(b, &fg)
-	//println("b:", string(b))
+	var fgo Fabric
+	fg := &fgo
+	err := json.Unmarshal(b, fg)
 	if err != nil {
-		println("ParseFabricJSON err:", err.Error())
 		return nil, err
 	}
-	println("before validate:", fg.Spec)
-	err = validateFabricResource(&fg)
+	err = validateFabricResource(fg)
 	if err != nil {
-		println("validation error:", err.Error())
-		return nil, fmt.Errorf("invalid fabric resource: %w", err)
-		//return nil, fmt.Errorf("invalid fabric resource %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
+		if fg != nil && fg.Metadata != nil {
+			return nil, fmt.Errorf("invalid fabric resource %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
+		}
+		return nil, fmt.Errorf("invalid fabric resource has no metadata: %w", err)
 	}
 
-	return &fg, nil
+	return fg, nil
 }
 
 func validateFabricResource(fg *Fabric) error {

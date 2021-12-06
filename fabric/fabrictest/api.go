@@ -157,7 +157,6 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "ingresses":
 		b = ns.ingresses
 	case "fabricgateways":
-		println("ns.fabricgateways")
 		b = ns.fabricgateways
 	case "routegroups":
 		b = ns.routeGroups

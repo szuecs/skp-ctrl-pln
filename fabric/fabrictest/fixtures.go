@@ -20,6 +20,7 @@ import (
 )
 
 func runSingle(fd *os.File) error {
+	println("runSingle")
 	b, err := io.ReadAll(fd)
 	if err != nil {
 		return fmt.Errorf("failed to readall fd %s: %v", fd.Name(), err)
@@ -171,7 +172,6 @@ func testFixture(t *testing.T, f fixtureSet) {
 
 	var resources []io.Reader
 	if f.resources != "" {
-		t.Logf("f.resources: %s", f.resources)
 		r, err := os.Open(f.resources)
 		if err != nil {
 			t.Fatal(err)
@@ -183,7 +183,6 @@ func testFixture(t *testing.T, f fixtureSet) {
 
 	var apiOptions TestAPIOptions
 	if f.api != "" {
-		t.Logf("f.api: %s", f.api)
 		a, err := os.Open(f.api)
 		if err != nil {
 			t.Fatal(err)
@@ -227,7 +226,6 @@ func testFixture(t *testing.T, f fixtureSet) {
 
 	routes, err := c.LoadAll()
 	if f.eskip != "" {
-		println("check f.eskip", f.eskip)
 		eskp, err := os.Open(f.eskip)
 		if err != nil {
 			t.Fatal(err)
@@ -312,7 +310,6 @@ func FixturesToTest(t *testing.T, dirs ...string) {
 
 		rangeOverFixtures(t, dir, fs, func(f fixtureSet) {
 			t.Run(f.name, func(t *testing.T) {
-				println("f.name:", f.name)
 				testFixture(t, f)
 			})
 		})
