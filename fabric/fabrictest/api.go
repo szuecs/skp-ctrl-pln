@@ -167,7 +167,8 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(b[len(`{"items":[`) : len(b)-2])
+	//w.Write(b[len(`{"items":[`) : len(b)-2]) // HACK for single Fabric on list API
+	w.Write(b)
 }
 
 func initNamespace(kinds map[string][]interface{}) (ns namespace, err error) {

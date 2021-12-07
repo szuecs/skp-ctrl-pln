@@ -483,25 +483,26 @@ type FabricStatus struct {
 	OwnedIngressNames    []string `json:"owned_ingress_names"`
 }
 
-func ParseFabricJSON(b []byte) (*Fabric, error) {
-	var fgo Fabric
-	fg := &fgo
-	err := json.Unmarshal(b, fg)
-	if err != nil {
-		return nil, err
-	}
-	err = validateFabricResource(fg)
-	if err != nil {
-		if fg != nil && fg.Metadata != nil {
-			return nil, fmt.Errorf("invalid fabric resource %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
-		}
-		return nil, fmt.Errorf("invalid fabric resource has no metadata: %w", err)
-	}
+// func ParseFabricJSON(b []byte) (*Fabric, error) {
+// 	println("ParseFabricJSON")
+// 	var fgo Fabric
+// 	fg := &fgo
+// 	err := json.Unmarshal(b, fg)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	err = ValidateFabricResource(fg)
+// 	if err != nil {
+// 		if fg != nil && fg.Metadata != nil {
+// 			return nil, fmt.Errorf("invalid fabric resource %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
+// 		}
+// 		return nil, fmt.Errorf("invalid fabric resource has no metadata: %w", err)
+// 	}
 
-	return fg, nil
-}
+// 	return fg, nil
+// }
 
-func validateFabricResource(fg *Fabric) error {
+func ValidateFabricResource(fg *Fabric) error {
 	if fg == nil || fg.Spec == nil || fg.Spec.Paths == nil || len(fg.Spec.Paths.Path) == 0 {
 		return fmt.Errorf("something nil: %v %v", fg, fg.Spec)
 	}

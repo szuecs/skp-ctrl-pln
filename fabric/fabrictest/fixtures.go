@@ -2,6 +2,7 @@ package fabrictest
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http/httptest"
@@ -26,18 +27,22 @@ func runSingle(fd *os.File) error {
 		return fmt.Errorf("failed to readall fd %s: %v", fd.Name(), err)
 	}
 
-	fg, err := fabric.ParseFabricJSON(b)
+	var fgo fabric.Fabric
+	fg := &fgo
+	err = json.Unmarshal(b, fg)
 	if err != nil {
 		return fmt.Errorf("failed to parse fabricgateway resource %s: %v", fd.Name(), err)
 	}
 
-	if fg.Spec.Compression != nil || fg.Spec.Cors != nil || fg.Spec.ExternalServiceProvider != nil {
-		log.Printf("name: %s\tns: %s\tadmins: %+v\nfg.spec: %+v\nfg.status: %+v", fg.Metadata.Name, fg.Metadata.Namespace, fg.Spec.Admins, fg.Spec, fg.Status)
-		log.Println("Compression", fg.Spec.Compression)
-		log.Println("Cors", fg.Spec.Cors)
-		log.Println("ExternalServiceProvider", fg.Spec.ExternalServiceProvider)
+	if err = fabric.ValidateFabricResource(fg); err != nil {
+		if fg.Spec.Compression != nil || fg.Spec.Cors != nil || fg.Spec.ExternalServiceProvider != nil {
+			log.Printf("name: %s\tns: %s\tadmins: %+v\nfg.spec: %+v\nfg.status: %+v", fg.Metadata.Name, fg.Metadata.Namespace, fg.Spec.Admins, fg.Spec, fg.Status)
+			log.Println("Compression", fg.Spec.Compression)
+			log.Println("Cors", fg.Spec.Cors)
+			log.Println("ExternalServiceProvider", fg.Spec.ExternalServiceProvider)
+		}
+		log.Fatalf("Failed to validate Fabric resource: %v", err)
 	}
-	log.Println("===================")
 
 	return nil
 }

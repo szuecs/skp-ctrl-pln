@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -209,24 +210,17 @@ func (c *clusterClient) getJSON(uri string, a interface{}) error {
 		return err
 	}
 	buf := b.Bytes()
-	//fmt.Fprintf(os.Stdout, "%s\n", buf)
 
-	a, err = ParseFabricJSON(buf)
-	//err = json.Unmarshal(buf, a)
+	err = json.Unmarshal(buf, a)
 	if err != nil {
 		log.Debugf("invalid response format: %v", err)
 		return err
-	}
-	f, ok := a.(*Fabric)
-	if ok {
-		println("len path:", len(f.Spec.Paths.Path))
 	}
 
 	return err
 }
 
 func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
-	// GET all fabric
 	var fl FabricList
 	err := c.getJSON(FabricGatewayURI, &fl)
 	if err != nil {
@@ -235,19 +229,15 @@ func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
 
 	println("FabricList len(items):", len(fl.Items))
 
-	// for all fabric resources do:
-	//   func ParseFabricJSON(d []byte) (*Fabric, error) {
 	fcs := make([]*Fabric, 0, len(fl.Items))
-	// for _, item := range fl.Items {
-	// 	f, err := ParseFabricJSON(item.B)
-	// 	if err != nil {
-	// 		log.Errorf("Failed to parse: %v", err)
-	// 	}
-	// 	fcs = append(fcs, f)
-	// }
+	for _, fg := range fl.Items {
+		err := ValidateFabricResource(fg)
+		if err != nil {
+			log.Errorf("Failed to validate: %v", err)
+		}
+		fcs = append(fcs, fg)
+	}
 
-	// and maybe
-	// func validateFabricResource(fg *Fabric) error {
 	return fcs, nil
 }
 
