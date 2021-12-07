@@ -11,10 +11,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zalando/skipper/eskip"
+	"github.com/zalando/skipper/predicates"
 	"github.com/zalando/skipper/secrets"
 )
 
@@ -39,6 +42,8 @@ var (
 	errServiceNotFound      = errors.New("service not found")
 	errAPIServerURLNotFound = errors.New("kubernetes API server URL could not be constructed from env vars")
 	errInvalidCertificate   = errors.New("invalid CA")
+
+	nonWord = regexp.MustCompile(`\W`)
 )
 
 type clusterClient struct {
@@ -264,17 +269,66 @@ func (fdc *FabricDataClient) Close() {
 	close(fdc.quit)
 }
 
+func createRouteID(name, namespace, host, path, method string) string {
+	namespace = nonWord.ReplaceAllString(namespace, "_")
+	name = nonWord.ReplaceAllString(name, "_")
+	host = nonWord.ReplaceAllString(host, "_")
+	path = nonWord.ReplaceAllString(path, "_")
+	method = nonWord.ReplaceAllString(method, "_")
+
+	return fmt.Sprintf("fg_%s_%s_%s_%s_%s", namespace, name, host, path, method)
+}
+
+// getKubeSvc returns serviceName, portName, portNumber, if portName is emtpy,
+// portNumber will have a non zero number.
+func getKubeSvc(fabsvc *FabricService) (string, string, int) {
+	var (
+		portName   string
+		portNumber int
+		err        error
+	)
+	portNumber, err = strconv.Atoi(fabsvc.ServicePort)
+	if err != nil {
+		portName = fabsvc.ServicePort
+	}
+
+	return fabsvc.ServiceName, portName, portNumber
+}
+
 func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	routes := make([]*eskip.Route, 0)
-	for _, p := range fg.Spec.Paths.Path {
-		println("fg with path:", fg.Metadata.Namespace, fg.Metadata.Name, p.Path, "methods:", len(p.Methods))
-		for _, m := range p.Methods {
-			// TODO(sszuecs): make sure we create the routes correctly, this is just a stub
-			r := &eskip.Route{
-				Path:   p.Path,
-				Method: m.Method,
+
+	for _, fabsvc := range fg.Spec.Service {
+		host := fabsvc.Host
+		svcName, svcPortName, svcPortNumber := getKubeSvc(fabsvc)
+		log.Debugf("fabsvc host=%s svc=%s portName=%s, portNumber=%d", host, svcName, svcPortName, svcPortNumber)
+
+		for _, p := range fg.Spec.Paths.Path {
+			println("fg:", fg.Metadata.Namespace, fg.Metadata.Name, "with host", host, "with path:", p.Path, "methods:", len(p.Methods))
+			for _, m := range p.Methods {
+				// TODO(sszuecs): make sure we create the routes correctly, this is just a stub
+				r := &eskip.Route{
+					Id:     createRouteID(fg.Metadata.Namespace, fg.Metadata.Name, host, p.Path, m.Method),
+					Path:   p.Path,
+					Method: m.Method,
+					Predicates: []*eskip.Predicate{
+						{
+							Name: predicates.HeaderName,
+							Args: []interface{}{
+								"X-Forwarded-Proto",
+								"https",
+							},
+						},
+						{
+							Name: predicates.WeightName,
+							Args: []interface{}{
+								23, // TODO(sszuecs) needs checking
+							},
+						},
+					},
+				}
+				routes = append(routes, r)
 			}
-			routes = append(routes, r)
 		}
 	}
 
