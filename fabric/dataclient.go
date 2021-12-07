@@ -265,11 +265,11 @@ func (fdc *FabricDataClient) Close() {
 }
 
 func convertOne(fg *Fabric) ([]*eskip.Route, error) {
-	println("convertOne")
 	routes := make([]*eskip.Route, 0)
 	for _, p := range fg.Spec.Paths.Path {
 		println("fg with path:", fg.Metadata.Namespace, fg.Metadata.Name, p.Path, "methods:", len(p.Methods))
 		for _, m := range p.Methods {
+			// TODO(sszuecs): make sure we create the routes correctly, this is just a stub
 			r := &eskip.Route{
 				Path:   p.Path,
 				Method: m.Method,
@@ -278,6 +278,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		}
 	}
 
+	// TODO(sszuecs): make sure errors are reported
 	// fmt.Errorf("failed to convert fabricgateway %s/%s: %v", fg.Metadata.Namespace, fg.Metadata.Name, err)
 	return routes, nil
 }

@@ -2,7 +2,6 @@ package fabrictest
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http/httptest"
@@ -19,33 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/zalando/skipper/eskip"
 )
-
-func runSingle(fd *os.File) error {
-	println("runSingle")
-	b, err := io.ReadAll(fd)
-	if err != nil {
-		return fmt.Errorf("failed to readall fd %s: %v", fd.Name(), err)
-	}
-
-	var fgo fabric.Fabric
-	fg := &fgo
-	err = json.Unmarshal(b, fg)
-	if err != nil {
-		return fmt.Errorf("failed to parse fabricgateway resource %s: %v", fd.Name(), err)
-	}
-
-	if err = fabric.ValidateFabricResource(fg); err != nil {
-		if fg.Spec.Compression != nil || fg.Spec.Cors != nil || fg.Spec.ExternalServiceProvider != nil {
-			log.Printf("name: %s\tns: %s\tadmins: %+v\nfg.spec: %+v\nfg.status: %+v", fg.Metadata.Name, fg.Metadata.Namespace, fg.Spec.Admins, fg.Spec, fg.Status)
-			log.Println("Compression", fg.Spec.Compression)
-			log.Println("Cors", fg.Spec.Cors)
-			log.Println("ExternalServiceProvider", fg.Spec.ExternalServiceProvider)
-		}
-		log.Fatalf("Failed to validate Fabric resource: %v", err)
-	}
-
-	return nil
-}
 
 type fixtureSet struct {
 	name           string
