@@ -17,6 +17,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zalando/skipper/eskip"
+	"github.com/zalando/skipper/filters"
 	"github.com/zalando/skipper/predicates"
 	"github.com/zalando/skipper/secrets"
 )
@@ -302,16 +303,65 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		host := fabsvc.Host
 		svcName, svcPortName, svcPortNumber := getKubeSvc(fabsvc)
 		log.Debugf("fabsvc host=%s svc=%s portName=%s, portNumber=%d", host, svcName, svcPortName, svcPortNumber)
+		r404 := &eskip.Route{
+			Id: createRouteID(fg.Metadata.Namespace, fg.Metadata.Name, host, "404", ""),
+			Predicates: []*eskip.Predicate{
+				{
+					Name: predicates.PathSubtreeName,
+					Args: []interface{}{
+						"/",
+					},
+				},
+				{
+					Name: predicates.HostName,
+					Args: []interface{}{
+						host,
+					},
+				},
+			},
+			Filters: []*eskip.Filter{
+				{
+					Name: filters.OAuthTokeninfoAllScopeName,
+					Args: []interface{}{
+						"uid",
+					},
+				}, {
+					Name: filters.UnverifiedAuditLogName,
+					Args: []interface{}{
+						"sub",
+					},
+				}, {
+					Name: filters.StatusName,
+					Args: []interface{}{
+						404,
+					},
+				}, {
+					Name: filters.InlineContentName,
+					Args: []interface{}{
+						`{"title":"Gateway Rejected","status":404,"detail":"Gateway Route Not Matched"}`,
+					},
+				},
+			},
+			BackendType: eskip.ShuntBackend,
+		}
+		routes = append(routes, r404)
 
 		for _, p := range fg.Spec.Paths.Path {
 			println("fg:", fg.Metadata.Namespace, fg.Metadata.Name, "with host", host, "with path:", p.Path, "methods:", len(p.Methods))
 			for _, m := range p.Methods {
 				// TODO(sszuecs): make sure we create the routes correctly, this is just a stub
+
 				r := &eskip.Route{
 					Id:     createRouteID(fg.Metadata.Namespace, fg.Metadata.Name, host, p.Path, m.Method),
 					Path:   p.Path,
 					Method: m.Method,
 					Predicates: []*eskip.Predicate{
+						{
+							Name: predicates.HostName,
+							Args: []interface{}{
+								host,
+							},
+						},
 						{
 							Name: predicates.HeaderName,
 							Args: []interface{}{
@@ -332,9 +382,82 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		}
 	}
 
+	hasCorsOptionRoute := make(map[string]struct{})
+	for _, r := range routes {
+		// TODO(sszuecs): check fg.Spec.Cors
+
+		corsHosts := make([]string, 0, len(fg.Spec.Cors.AllowedOrigins))
+		for _, h := range fg.Spec.Cors.AllowedOrigins {
+			corsHosts = append(corsHosts, "https://"+h)
+		}
+
+		// option route
+		for _, h := range corsHosts {
+			if _, ok := hasCorsOptionRoute[h]; !ok {
+				rCors := createOptionRoute("/", []string{"GET"}, []string{h}) // TODO
+				rCors.Id = createRouteID("", "", h, "", "OPTIONS")
+				hasCorsOptionRoute[h] = struct{}{}
+			}
+		}
+		// for _, ch := range fg.Spec.Cors.AllowedHeaders {
+
+		// }
+
+		r.Filters = append(r.Filters, &eskip.Filter{
+			Name: filters.CorsOriginName,
+			Args: stringToEmptyInterface(corsHosts),
+		})
+	}
+
 	// TODO(sszuecs): make sure errors are reported
 	// fmt.Errorf("failed to convert fabricgateway %s/%s: %v", fg.Metadata.Namespace, fg.Metadata.Name, err)
 	return routes, nil
+}
+
+func stringToEmptyInterface(a []string) []interface{} {
+	res := make([]interface{}, len(a))
+	for i := range a {
+		res[i] = a[i]
+	}
+	return res
+}
+
+func createOptionRoute(path string, methods, hosts []string) *eskip.Route {
+	return &eskip.Route{
+		BackendType: eskip.ShuntBackend,
+		Method:      "OPTIONS",
+		Path:        path,
+		Predicates: []*eskip.Predicate{
+			{
+				Name: predicates.HostAnyName,
+				Args: stringToEmptyInterface(hosts),
+			},
+			{
+				Name: predicates.HeaderName,
+				Args: []interface{}{
+					"X-Forwarded-Proto",
+					"https",
+				},
+			},
+		},
+		Filters: []*eskip.Filter{
+			{
+				//status(204)
+				Name: filters.StatusName,
+				Args: []interface{}{204},
+			}, {
+				// flowId("reuse")
+				Name: filters.FlowIdName,
+				Args: []interface{}{"reuse"},
+			}, {
+				// corsOrigin("https://bo-master.lounge-test.zalan.do", "https://dabo.lounge-test.zalan.do", "https://mooncake-master.lounge-test.zalan.do", "https://mooncake-freeze.lounge-test.zalan.do", "https://dabo-freeze.lounge-test.zalan.do")
+			}, {
+				// appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS") ->
+			}, {
+				// appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid")
+			},
+		},
+	}
 }
 
 func (fdc *FabricDataClient) convert(fgs []*Fabric) ([]*eskip.Route, error) {
