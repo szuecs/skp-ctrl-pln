@@ -13,11 +13,13 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zalando/skipper/eskip"
 	"github.com/zalando/skipper/filters"
+	"github.com/zalando/skipper/loadbalancer"
 	"github.com/zalando/skipper/predicates"
 	"github.com/zalando/skipper/secrets"
 )
@@ -68,6 +70,13 @@ type FabricDataClient struct {
 type Options struct {
 	KubernetesURL       string
 	KubernetesInCluster bool
+}
+
+type eskipBackend struct {
+	Type        eskip.BackendType
+	backend     string
+	lbAlgorithm string
+	lbEndpoints []string
 }
 
 func buildAPIURL(o Options) (string, error) {
@@ -348,9 +357,12 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 
 		for _, p := range fg.Spec.Paths.Path {
 			println("fg:", fg.Metadata.Namespace, fg.Metadata.Name, "with host", host, "with path:", p.Path, "methods:", len(p.Methods))
+			methods := make([]string, 0, len(p.Methods))
 			for _, m := range p.Methods {
+				methods = append(methods, m.Method)
 				// TODO(sszuecs): make sure we create the routes correctly, this is just a stub
 
+				// normal path+method route
 				r := &eskip.Route{
 					Id:     createRouteID(fg.Metadata.Namespace, fg.Metadata.Name, host, p.Path, m.Method),
 					Path:   p.Path,
@@ -379,34 +391,23 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				}
 				routes = append(routes, r)
 			}
-		}
-	}
 
-	hasCorsOptionRoute := make(map[string]struct{})
-	for _, r := range routes {
-		// TODO(sszuecs): check fg.Spec.Cors
+			if fg.Spec.Cors != nil {
+				routes = append(routes, createCorsRoute(fg.Spec.Cors, host, p.Path, methods))
+			}
+			if len(fg.Spec.Admins) != 0 {
+				// TODO(sszuecs) eskip Backend data
+				eskipBackend := &eskipBackend{
+					Type:        eskip.LBBackend,
+					backend:     "",
+					lbAlgorithm: loadbalancer.RoundRobin.String(),
+					lbEndpoints: []string{},
+				}
+				adminRoutes := createAdminRoute(eskipBackend, host, p.Path, methods, fg.Spec.Admins)
+				routes = append(routes, adminRoutes...)
 
-		corsHosts := make([]string, 0, len(fg.Spec.Cors.AllowedOrigins))
-		for _, h := range fg.Spec.Cors.AllowedOrigins {
-			corsHosts = append(corsHosts, "https://"+h)
-		}
-
-		// option route
-		for _, h := range corsHosts {
-			if _, ok := hasCorsOptionRoute[h]; !ok {
-				rCors := createOptionRoute("/", []string{"GET"}, []string{h}) // TODO
-				rCors.Id = createRouteID("", "", h, "", "OPTIONS")
-				hasCorsOptionRoute[h] = struct{}{}
 			}
 		}
-		// for _, ch := range fg.Spec.Cors.AllowedHeaders {
-
-		// }
-
-		r.Filters = append(r.Filters, &eskip.Filter{
-			Name: filters.CorsOriginName,
-			Args: stringToEmptyInterface(corsHosts),
-		})
 	}
 
 	// TODO(sszuecs): make sure errors are reported
@@ -422,7 +423,59 @@ func stringToEmptyInterface(a []string) []interface{} {
 	return res
 }
 
-func createOptionRoute(path string, methods, hosts []string) *eskip.Route {
+func createAdminRoute(eskipBackend *eskipBackend, host, path string, methods, admins []string) []*eskip.Route {
+	adminsArgs := make([]interface{}, 0, 2*len(admins))
+	for _, s := range admins {
+		adminsArgs = append(adminsArgs, "https://identity.zalando.com/managed-id", s)
+	}
+
+	r := make([]*eskip.Route, 0, len(methods))
+	for _, m := range methods {
+		rr := &eskip.Route{
+			BackendType: eskipBackend.Type,
+			Backend:     eskipBackend.backend, // in case we have only 1 endpoint we fallback to network backend
+			LBAlgorithm: eskipBackend.lbAlgorithm,
+			LBEndpoints: eskipBackend.lbEndpoints,
+			Path:        path,
+			Method:      m,
+			Predicates: []*eskip.Predicate{
+				{
+					Name: predicates.HostAnyName,
+					Args: []interface{}{host},
+				},
+				{
+					Name: predicates.HeaderName,
+					Args: []interface{}{
+						"X-Forwarded-Proto",
+						"https",
+					},
+				},
+				{
+					Name: predicates.WeightName,
+					Args: []interface{}{5},
+				},
+				{
+					Name: predicates.JWTPayloadAllKVName,
+					Args: []interface{}{
+						"https://identity.zalando.com/realm",
+						"users",
+					},
+				},
+				{
+					Name: predicates.JWTPayloadAnyKVName,
+					Args: adminsArgs,
+				},
+			},
+		}
+		r = append(r, rr)
+	}
+	return r
+}
+
+func createCorsRoute(cors *FabricCorsSupport, host, path string, methods []string) *eskip.Route {
+	corsMethods := strings.Join(methods, ", ")
+	corsAllowedHeaders := strings.Join(cors.AllowedHeaders, ", ")
+
 	return &eskip.Route{
 		BackendType: eskip.ShuntBackend,
 		Method:      "OPTIONS",
@@ -430,7 +483,7 @@ func createOptionRoute(path string, methods, hosts []string) *eskip.Route {
 		Predicates: []*eskip.Predicate{
 			{
 				Name: predicates.HostAnyName,
-				Args: stringToEmptyInterface(hosts),
+				Args: []interface{}{host},
 			},
 			{
 				Name: predicates.HeaderName,
@@ -438,6 +491,10 @@ func createOptionRoute(path string, methods, hosts []string) *eskip.Route {
 					"X-Forwarded-Proto",
 					"https",
 				},
+			},
+			{
+				Name: predicates.WeightName,
+				Args: []interface{}{3},
 			},
 		},
 		Filters: []*eskip.Filter{
@@ -450,11 +507,17 @@ func createOptionRoute(path string, methods, hosts []string) *eskip.Route {
 				Name: filters.FlowIdName,
 				Args: []interface{}{"reuse"},
 			}, {
-				// corsOrigin("https://bo-master.lounge-test.zalan.do", "https://dabo.lounge-test.zalan.do", "https://mooncake-master.lounge-test.zalan.do", "https://mooncake-freeze.lounge-test.zalan.do", "https://dabo-freeze.lounge-test.zalan.do")
+				// corsOrigin("https://example.org", "https://example.com")
+				Name: filters.CorsOriginName,
+				Args: stringToEmptyInterface(cors.AllowedOrigins),
 			}, {
 				// appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS") ->
+				Name: filters.AppendResponseHeaderName,
+				Args: stringToEmptyInterface([]string{corsMethods}),
 			}, {
 				// appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid")
+				Name: filters.AppendResponseHeaderName,
+				Args: stringToEmptyInterface([]string{corsAllowedHeaders}),
 			},
 		},
 	}
