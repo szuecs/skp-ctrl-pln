@@ -473,8 +473,8 @@ type FabricEmployeeAccess struct {
 
 type FabricService struct {
 	Host        string `json:"host"`
-	ServiceName string `json:"serviceName"` // not ing V1 compliant
-	ServicePort string `json:"servicePort"` // not ing V1 compliant
+	ServiceName string `json:"serviceName"` // TODO(sszuecs): not ing V1 compliant
+	ServicePort string `json:"servicePort"` // TODO(sszuecs): not ing V1 compliant
 }
 
 type FabricStatus struct {

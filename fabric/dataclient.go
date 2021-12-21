@@ -12,11 +12,13 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/zalando/skipper/dataclients/kubernetes/definitions"
 	"github.com/zalando/skipper/eskip"
 	"github.com/zalando/skipper/filters"
 	"github.com/zalando/skipper/loadbalancer"
@@ -38,6 +40,8 @@ const (
 	serviceAccountDir          = "/var/run/secrets/kubernetes.io/serviceaccount/"
 	serviceAccountTokenKey     = "token"
 	serviceAccountRootCAKey    = "ca.crt"
+
+	skipperLoadBalancerAnnotationKey = "zalando.org/skipper-loadbalancer"
 )
 
 var (
@@ -279,14 +283,22 @@ func (fdc *FabricDataClient) Close() {
 	close(fdc.quit)
 }
 
-func createRouteID(name, namespace, host, path, method string) string {
+func createCorsRouteID(fg *Fabric, host, path string) string {
+	return createRouteID("fg_cors", fg.Metadata.Name, fg.Metadata.Namespace, host, path, "")
+}
+
+func createAdminRouteID(fg *Fabric, host, path string) string {
+	return createRouteID("fg_admin", fg.Metadata.Name, fg.Metadata.Namespace, host, path, "")
+}
+
+func createRouteID(prefix, name, namespace, host, path, method string) string {
 	namespace = nonWord.ReplaceAllString(namespace, "_")
 	name = nonWord.ReplaceAllString(name, "_")
 	host = nonWord.ReplaceAllString(host, "_")
 	path = nonWord.ReplaceAllString(path, "_")
 	method = nonWord.ReplaceAllString(method, "_")
 
-	return fmt.Sprintf("fg_%s_%s_%s_%s_%s", namespace, name, host, path, method)
+	return fmt.Sprintf("%s_%s_%s_%s_%s_%s", prefix, namespace, name, host, path, method)
 }
 
 // getKubeSvc returns serviceName, portName, portNumber, if portName is emtpy,
@@ -305,15 +317,57 @@ func getKubeSvc(fabsvc *FabricService) (string, string, int) {
 	return fabsvc.ServiceName, portName, portNumber
 }
 
+// copied definition github.com/zalando/skipper/dataclients/kubernetes/ingressdefinitions.go
+type servicePort struct {
+	Name       string                   `json:"name"`
+	Port       int                      `json:"port"`
+	TargetPort *definitions.BackendPort `json:"targetPort"` // string or int
+}
+
+// signature copied from github.com/zalando/skipper/dataclients/kubernetes/clusterstate.go
+// dummy
+func getEndpointsByService(namespace, name, protocol string, servicePort *servicePort) []string {
+	return []string{
+		"http://10.2.23.42:8080",
+		"http://10.2.5.4:8080",
+	}
+}
+
 func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	routes := make([]*eskip.Route, 0)
 
+	lbAlgorithm := loadbalancer.RoundRobin.String()
+	if s, ok := fg.Metadata.Annotations[skipperLoadBalancerAnnotationKey]; ok {
+		lbAlgorithm = s
+	}
 	for _, fabsvc := range fg.Spec.Service {
 		host := fabsvc.Host
+
+		// TODO(sszuecs): cleanup this hack and think about ingress v1, do we want to change svc def in Fabric?
 		svcName, svcPortName, svcPortNumber := getKubeSvc(fabsvc)
+		// TODO(sszuecs): fix how to get endpoints
+		endpoints := getEndpointsByService(fg.Metadata.Namespace, fg.Metadata.Name, "tcp", &servicePort{
+			Name: svcPortName,
+			Port: svcPortNumber,
+		})
 		log.Debugf("fabsvc host=%s svc=%s portName=%s, portNumber=%d", host, svcName, svcPortName, svcPortNumber)
+
+		be := ""
+		var bt eskip.BackendType = eskip.LBBackend
+		if len(endpoints) == 1 {
+			be = endpoints[0]
+			bt = eskip.NetworkBackend
+			endpoints = nil
+		}
+		eskipBackend := &eskipBackend{
+			Type:        bt,
+			backend:     be,
+			lbAlgorithm: lbAlgorithm,
+			lbEndpoints: endpoints,
+		}
+
 		r404 := &eskip.Route{
-			Id: createRouteID(fg.Metadata.Namespace, fg.Metadata.Name, host, "404", ""),
+			Id: createRouteID("fg_404", fg.Metadata.Name, fg.Metadata.Namespace, host, "", ""),
 			Predicates: []*eskip.Predicate{
 				{
 					Name: predicates.PathSubtreeName,
@@ -364,7 +418,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 
 				// normal path+method route
 				r := &eskip.Route{
-					Id:     createRouteID(fg.Metadata.Namespace, fg.Metadata.Name, host, p.Path, m.Method),
+					Id:     createRouteID("fg", fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path, m.Method),
 					Path:   p.Path,
 					Method: m.Method,
 					Predicates: []*eskip.Predicate{
@@ -393,17 +447,12 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			}
 
 			if fg.Spec.Cors != nil {
-				routes = append(routes, createCorsRoute(fg.Spec.Cors, host, p.Path, methods))
+				rID := createCorsRouteID(fg, host, p.Path)
+				routes = append(routes, createCorsRoute(fg.Spec.Cors, rID, host, p.Path, methods))
 			}
 			if len(fg.Spec.Admins) != 0 {
-				// TODO(sszuecs) eskip Backend data
-				eskipBackend := &eskipBackend{
-					Type:        eskip.LBBackend,
-					backend:     "",
-					lbAlgorithm: loadbalancer.RoundRobin.String(),
-					lbEndpoints: []string{},
-				}
-				adminRoutes := createAdminRoute(eskipBackend, host, p.Path, methods, fg.Spec.Admins)
+				rID := createAdminRouteID(fg, host, p.Path)
+				adminRoutes := createAdminRoute(eskipBackend, rID, host, p.Path, methods, fg.Spec.Admins)
 				routes = append(routes, adminRoutes...)
 
 			}
@@ -412,6 +461,15 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 
 	// TODO(sszuecs): make sure errors are reported
 	// fmt.Errorf("failed to convert fabricgateway %s/%s: %v", fg.Metadata.Namespace, fg.Metadata.Name, err)
+
+	fd, err := os.Create("/tmp/foo.eskip")
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+
+	eskip.Fprint(fd, eskip.PrettyPrintInfo{Pretty: true, IndentStr: "\t"}, routes...)
+
 	return routes, nil
 }
 
@@ -423,15 +481,17 @@ func stringToEmptyInterface(a []string) []interface{} {
 	return res
 }
 
-func createAdminRoute(eskipBackend *eskipBackend, host, path string, methods, admins []string) []*eskip.Route {
+func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, methods, admins []string) []*eskip.Route {
 	adminsArgs := make([]interface{}, 0, 2*len(admins))
 	for _, s := range admins {
+		// TODO(sszuecs): this should be configurable
 		adminsArgs = append(adminsArgs, "https://identity.zalando.com/managed-id", s)
 	}
 
 	r := make([]*eskip.Route, 0, len(methods))
 	for _, m := range methods {
 		rr := &eskip.Route{
+			Id:          routeID + "_" + strings.ToLower(m),
 			BackendType: eskipBackend.Type,
 			Backend:     eskipBackend.backend, // in case we have only 1 endpoint we fallback to network backend
 			LBAlgorithm: eskipBackend.lbAlgorithm,
@@ -457,7 +517,7 @@ func createAdminRoute(eskipBackend *eskipBackend, host, path string, methods, ad
 				{
 					Name: predicates.JWTPayloadAllKVName,
 					Args: []interface{}{
-						"https://identity.zalando.com/realm",
+						"https://identity.zalando.com/realm", // TODO(sszuecs): this should be configurable
 						"users",
 					},
 				},
@@ -472,11 +532,17 @@ func createAdminRoute(eskipBackend *eskipBackend, host, path string, methods, ad
 	return r
 }
 
-func createCorsRoute(cors *FabricCorsSupport, host, path string, methods []string) *eskip.Route {
-	corsMethods := strings.Join(methods, ", ")
+func createCorsRoute(cors *FabricCorsSupport, routeID, host, path string, methods []string) *eskip.Route {
+	corsMethods := strings.ToUpper(strings.Join(methods, ", "))
 	corsAllowedHeaders := strings.Join(cors.AllowedHeaders, ", ")
+	allowedOrigins := make([]interface{}, 0, len(cors.AllowedOrigins))
+	sort.Strings(cors.AllowedOrigins)
+	for _, w := range cors.AllowedOrigins {
+		allowedOrigins = append(allowedOrigins, "https://"+w)
+	}
 
 	return &eskip.Route{
+		Id:          routeID,
 		BackendType: eskip.ShuntBackend,
 		Method:      "OPTIONS",
 		Path:        path,
@@ -509,15 +575,15 @@ func createCorsRoute(cors *FabricCorsSupport, host, path string, methods []strin
 			}, {
 				// corsOrigin("https://example.org", "https://example.com")
 				Name: filters.CorsOriginName,
-				Args: stringToEmptyInterface(cors.AllowedOrigins),
+				Args: allowedOrigins,
 			}, {
 				// appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS") ->
 				Name: filters.AppendResponseHeaderName,
-				Args: stringToEmptyInterface([]string{corsMethods}),
+				Args: stringToEmptyInterface([]string{"Access-Control-Allow-Methods", corsMethods}),
 			}, {
 				// appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid")
 				Name: filters.AppendResponseHeaderName,
-				Args: stringToEmptyInterface([]string{corsAllowedHeaders}),
+				Args: stringToEmptyInterface([]string{"Access-Control-Allow-Headers", corsAllowedHeaders}),
 			},
 		},
 	}

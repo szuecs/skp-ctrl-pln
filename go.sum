@@ -132,8 +132,8 @@ github.com/uber/jaeger-client-go v2.29.1+incompatible h1:R9ec3zO3sGpzs0abd43Y+fB
 github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVKhn2Um6rjCsSsg=
 github.com/yookoala/gofast v0.6.0 h1:E5x2acfUD7GkzCf8bmIMwnV10VxDy5tUCHc5LGhluwc=
 github.com/yuin/gopher-lua v0.0.0-20200603152657-dc2b0ca8b37e h1:oIpIX9VKxSCFrfjsKpluGbNPBGq9iNnT9crH781j9wY=
-github.com/zalando/skipper v0.13.163 h1:8+3x96yog8RxApRSh+5s0k2jstx09aCtWE3n4IQn7SM=
-github.com/zalando/skipper v0.13.163/go.mod h1:eZkIpFa/G2iOCBjTS+jgIK80flB16sMTrLZj+PPl9uc=
+github.com/zalando/skipper v0.13.166 h1:Tas4Na39gkS3ZZF6XhpclC5cDiklnCerQzA/vX9Y6DY=
+github.com/zalando/skipper v0.13.166/go.mod h1:eZkIpFa/G2iOCBjTS+jgIK80flB16sMTrLZj+PPl9uc=
 go.opentelemetry.io/otel v0.13.0 h1:2isEnyzjjJZq6r2EKMsFj4TxiQiexsM04AVhwbR/oBA=
 go.opentelemetry.io/otel v0.13.0/go.mod h1:dlSNewoRYikTkotEnxdmuBHgzT+k/idJSfDv/FxEnOY=
 go.uber.org/atomic v1.4.0 h1:cxzIVoETapQEqDhQu3QfnvXAV4AlzcvUCxkVUFw3+EU=
