@@ -387,8 +387,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 					Args: []interface{}{
 						"/",
 					},
-				},
-				{
+				}, {
 					Name: predicates.HostName,
 					Args: []interface{}{
 						host,
@@ -416,6 +415,10 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 					Args: []interface{}{
 						`{"title":"Gateway Rejected","status":404,"detail":"Gateway Route Not Matched"}`,
 					},
+				}, {
+					// corsOrigin("https://foo.example.org", "https://bar.example.com")
+					Name: filters.CorsOriginName,
+					Args: allowedOrigins,
 				},
 			},
 			BackendType: eskip.ShuntBackend,
@@ -518,7 +521,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 							Args: []interface{}{
 								fmt.Sprintf("%s_%s_%s",
 									fg.Metadata.Name,
-									nonWord.ReplaceAllString(p.Path, "-"),
+									strings.Trim(nonWord.ReplaceAllString(p.Path, "-"), "-"),
 									m.Method,
 								),
 								m.Ratelimit.DefaultRate,
@@ -580,7 +583,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 								rr.Filters[i].Args = []interface{}{
 									fmt.Sprintf("%s_%s_%s_%s",
 										fg.Metadata.Name,
-										nonWord.ReplaceAllString(p.Path, "-"),
+										strings.Trim(nonWord.ReplaceAllString(p.Path, "-"), "-"),
 										m.Method,
 										rTarget.UID,
 									),
@@ -604,7 +607,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			}
 			if len(fg.Spec.Admins) != 0 {
 				rID := createAdminRouteID(fg, host, p.Path)
-				adminRoutes := createAdminRoute(eskipBackend, rID, host, p.Path, methods, fg.Spec.Admins)
+				adminRoutes := createAdminRoute(eskipBackend, rID, host, p.Path, methods, fg.Spec.Admins, allowedOrigins)
 				routes = append(routes, adminRoutes...)
 
 			}
@@ -633,7 +636,7 @@ func stringToEmptyInterface(a []string) []interface{} {
 	return res
 }
 
-func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, methods, admins []string) []*eskip.Route {
+func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, methods, admins []string, allowedOrigins []interface{}) []*eskip.Route {
 	adminsArgs := make([]interface{}, 0, 2*len(admins))
 	for _, s := range admins {
 		// TODO(sszuecs): this should be configurable
@@ -669,13 +672,61 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, me
 				{
 					Name: predicates.JWTPayloadAllKVName,
 					Args: []interface{}{
-						"https://identity.zalando.com/realm", // TODO(sszuecs): this should be configurable
+						// TODO(sszuecs): this should be configurable
+						"https://identity.zalando.com/realm",
 						"users",
 					},
 				},
 				{
 					Name: predicates.JWTPayloadAnyKVName,
 					Args: adminsArgs,
+				},
+			},
+			Filters: []*eskip.Filter{
+				{
+					// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+					Name: filters.OAuthTokeninfoAnyKVName,
+					Args: []interface{}{
+						// TODO(sszuecs): should be configurable
+						"realm",
+						"/services", // TODO(sszuecs): seems not to be required for admin routes
+						"realm",
+						"/employees",
+					},
+				}, {
+					// enableAccessLog(2, 4, 5)
+					Name: filters.EnableAccessLogName,
+					Args: []interface{}{2, 4, 5},
+				}, {
+					// unverifiedAuditLog("https://identity.zalando.com/managed-id")
+					Name: filters.UnverifiedAuditLogName,
+					Args: []interface{}{
+						// TODO(sszuecs): in the future should be configurable
+						"https://identity.zalando.com/managed-id",
+					},
+				}, {
+					// oauthTokeninfoAllScope("uid")
+					Name: filters.OAuthTokeninfoAllScopeName,
+					// TODO(sszuecs): in the future should be configurable
+					Args: []interface{}{"uid"},
+				}, {
+					// flowId("reuse")
+					Name: filters.FlowIdName,
+					Args: []interface{}{flowid.ReuseParameterValue},
+				}, {
+					// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+					Name: filters.ForwardTokenName,
+					Args: []interface{}{
+						// TODO(sszuecs): in the future should be configurable
+						"X-TokenInfo-Forward",
+						"uid",
+						"scope",
+						"realm",
+					},
+				}, {
+					// corsOrigin("https://example.org", "https://example.com")
+					Name: filters.CorsOriginName,
+					Args: allowedOrigins,
 				},
 			},
 		}
