@@ -6,6 +6,9 @@ import (
 	"github.com/szuecs/skp-ctrl-pln/fabric/fabrictest"
 )
 
-func TestFabric(t *testing.T) {
-	fabrictest.FixturesToTest(t, "testdata/in")
+func TestFabricCluster(t *testing.T) {
+	fabrictest.FixturesToTest(t, "testdata/spp-cluster")
+}
+func TestFabricFeature(t *testing.T) {
+	fabrictest.FixturesToTest(t, "testdata/feature")
 }

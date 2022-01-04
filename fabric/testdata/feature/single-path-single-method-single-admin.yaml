@@ -1,0 +1,32 @@
+apiVersion: zalando.org/v1
+kind: FabricGateway
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"zalando.org/v1","kind":"FabricGateway","metadata":{"annotations":{},"name":"skipper-perf-test","namespace":"default"},"spec":{"paths":{"/resources":{"get":{"x-fabric-privileges":["uid"]}}},"x-fabric-admins":["bmooney"],"x-fabric-service":[{"host":"skipper-perf-test.smart-product-platform-test.zalan.do","serviceName":"skipper-perf-test","servicePort":"http"}]}}
+  creationTimestamp: "2019-06-24T16:00:05Z"
+  generation: 2
+  name: skipper-perf-test
+  namespace: default
+  resourceVersion: "256125022"
+  uid: 21d51a04-9699-11e9-9fa3-065b20c8b844
+spec:
+  paths:
+    /resources:
+      get:
+        x-fabric-privileges:
+        - uid
+  x-fabric-admins:
+  - bmooney
+  x-fabric-service:
+  - host: skipper-perf-test.smart-product-platform-test.zalan.do
+    serviceName: skipper-perf-test
+    servicePort: http
+status:
+  num_owned_ingress: 4
+  observedGeneration: 2
+  owned_ingress_names:
+  - skipper-perf-test-default-404-route
+  - skipper-perf-test-get-resources-admins
+  - skipper-perf-test-get-resources-all
+  - skipper-perf-test-reject-http-route
