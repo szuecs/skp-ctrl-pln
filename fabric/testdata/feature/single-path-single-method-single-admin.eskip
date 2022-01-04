@@ -1,43 +1,32 @@
-kube_default__skipper_perf_test_default_404_route__0__skipper_perf_test_smart_product_platform_test_zalan_do____: Host(/^(skipper-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && PathSubtree("/")
+fg_404_default_simplest_simplest_example_org__: HostAny("simplest.example.org", "simplest.example.org:443") && PathSubtree("/")
   -> oauthTokeninfoAllScope("uid")
   -> unverifiedAuditLog("sub")
   -> status(404)
   -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
   -> <shunt>;
 
-kube_default__skipper_perf_test_default_404_route__skipper_perf_test_smart_product_platform_test_zalan_do____skipper_perf_test: Host(/^(skipper-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
-  -> status(502)
-  -> inlineContent("no endpoints")
-  -> <shunt>;
-
-kube_default__skipper_perf_test_default_404_route__skipper_perf_test_smart_product_platform_test_zalan_do____skipper_perf_test_https_redirect: Host(/^(skipper-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && Weight(1000)
-  -> redirectTo(308, "https:")
-  -> <shunt>;kube_default__skipper_perf_test_get_resources_admins__skipper_perf_test_smart_product_platform_test_zalan_do____skipper_perf_test: Path("/resources") && Host(/^(skipper-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "bmooney")
+fg_admin_default_simplest_simplest_example_org__resources__get: Path("/resources") && HostAny("simplest.example.org", "simplest.example.org:443") && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "bmooney")
   -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
   -> enableAccessLog(2, 4, 5)
   -> unverifiedAuditLog("https://identity.zalando.com/managed-id")
   -> oauthTokeninfoAllScope("uid")
   -> flowId("reuse")
   -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
-  -> status(502)
-  -> inlineContent("no endpoints")
-  -> <shunt>;kube_default__skipper_perf_test_get_resources_all__skipper_perf_test_smart_product_platform_test_zalan_do____skipper_perf_test: Path("/resources") && Host(/^(skipper-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
+  -> corsOrigin()
+  -> <roundRobin, "http://10.2.23.42:8080", "http://10.2.5.4:8080">;
+
+fg_default_simplest_simplest_example_org__resources_get: Path("/resources") && HostAny("simplest.example.org","simplest.example.org:443") && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(23)
   -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
   -> unverifiedAuditLog("sub")
   -> oauthTokeninfoAllScope("uid")
   -> flowId("reuse")
   -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
-  -> status(502)
-  -> inlineContent("no endpoints")
-  -> <shunt>;kube_default__skipper_perf_test_reject_http_route__0__skipper_perf_test_smart_product_platform_test_zalan_do____: Host(/^(skipper-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
-  -> enableAccessLog(4, 5)
-  -> lifo(30000, 50000, "3s")
+  -> corsOrigin()
+  -> <roundRobin, "http://10.2.23.42:8080", "http://10.2.5.4:8080">;
+
+fg_reject_default_simplest_simplest_example_org__: HostAny("simplest.example.org", "simplest.example.org:443") && Header("X-Forwarded-Proto", "http") && PathSubtree("/")
+  -> oauthTokeninfoAllScope("uid")
   -> unverifiedAuditLog("sub")
   -> status(400)
   -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":400,\"detail\":\"TLS is required\",\"type\":\"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https\"}")
-  -> <shunt>;
-
-kube_default__skipper_perf_test_reject_http_route__skipper_perf_test_smart_product_platform_test_zalan_do____skipper_perf_test: Host(/^(skipper-perf-test[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/)
-  -> status(502)
-  -> inlineContent("no endpoints")
   -> <shunt>;

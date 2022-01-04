@@ -118,7 +118,8 @@ func NewAPI(o TestAPIOptions, specs ...io.Reader) (*api, error) {
 }
 
 func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	println("ServeHTTP", r.URL.Path)
+	// TODO(sszuecs): cleanup
+	//println("ServeHTTP", r.URL.Path)
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return

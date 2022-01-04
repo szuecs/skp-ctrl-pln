@@ -145,7 +145,8 @@ func compileRegexps(s []string) ([]*regexp.Regexp, error) {
 }
 
 func testFixture(t *testing.T, f fixtureSet) {
-	println("f.name:", f.name, "f.resources:", f.resources, "f.api:", f.api, "f.eskip:", f.eskip)
+	// TODO(sszuecs): cleanup
+	//println("f.name:", f.name, "f.resources:", f.resources, "f.api:", f.api, "f.eskip:", f.eskip)
 
 	var resources []io.Reader
 	if f.resources != "" {
@@ -219,15 +220,18 @@ func testFixture(t *testing.T, f fixtureSet) {
 			t.Fatal(err)
 		}
 
-		if !eskip.EqLists(routes, expectedRoutes) {
-			sort.SliceStable(routes, func(i, j int) bool {
-				return routes[i].Id < routes[j].Id
-			})
-			sort.SliceStable(expectedRoutes, func(i, j int) bool {
-				return expectedRoutes[i].Id < expectedRoutes[j].Id
-			})
+		if len(routes) != len(expectedRoutes) {
+			t.Fatalf("Failed to get expected number of routes %d, got %d", len(expectedRoutes), len(routes))
+		}
+
+		sort.SliceStable(routes, func(i, j int) bool {
+			return routes[i].Id < routes[j].Id
+		})
+		sort.SliceStable(expectedRoutes, func(i, j int) bool {
+			return expectedRoutes[i].Id < expectedRoutes[j].Id
+		})
+		if !cmp.Equal(eskip.String(eskip.CanonicalList(routes)...), eskip.String(eskip.CanonicalList(expectedRoutes)...)) {
 			t.Error("Failed to convert the resources to the right routes.")
-			t.Logf("routes: %d, expected: %d", len(routes), len(expectedRoutes))
 			t.Logf("got:\n%s", eskip.String(eskip.CanonicalList(routes)...))
 			t.Logf("expected:\n%s", eskip.String(eskip.CanonicalList(expectedRoutes)...))
 			t.Logf("diff\n%s:", cmp.Diff(

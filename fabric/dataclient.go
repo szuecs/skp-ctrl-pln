@@ -247,8 +247,6 @@ func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
 		return nil, err
 	}
 
-	println("FabricList len(items):", len(fl.Items))
-
 	fcs := make([]*Fabric, 0, len(fl.Items))
 	for _, fg := range fl.Items {
 		err := ValidateFabricResource(fg)
@@ -282,6 +280,14 @@ func NewFabricDataClient(o Options) (*FabricDataClient, error) {
 
 func (fdc *FabricDataClient) Close() {
 	close(fdc.quit)
+}
+
+func createRejectRouteID(fg *Fabric, host string) string {
+	return createRouteID("fg_reject", fg.Metadata.Name, fg.Metadata.Namespace, host, "", "")
+}
+
+func create404RouteID(fg *Fabric, host string) string {
+	return createRouteID("fg_404", fg.Metadata.Name, fg.Metadata.Namespace, host, "", "")
 }
 
 func createCorsRouteID(fg *Fabric, host, path string) string {
@@ -380,7 +386,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 
 		// 404 route per host
 		r404 := &eskip.Route{
-			Id: createRouteID("fg_404", fg.Metadata.Name, fg.Metadata.Namespace, host, "", ""),
+			Id: create404RouteID(fg, host),
 			Predicates: []*eskip.Predicate{
 				{
 					Name: predicates.PathSubtreeName,
@@ -388,9 +394,10 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 						"/",
 					},
 				}, {
-					Name: predicates.HostName,
+					Name: predicates.HostAnyName,
 					Args: []interface{}{
 						host,
+						host + ":443",
 					},
 				},
 			},
@@ -415,15 +422,64 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 					Args: []interface{}{
 						`{"title":"Gateway Rejected","status":404,"detail":"Gateway Route Not Matched"}`,
 					},
-				}, {
-					// corsOrigin("https://foo.example.org", "https://bar.example.com")
-					Name: filters.CorsOriginName,
-					Args: allowedOrigins,
 				},
 			},
 			BackendType: eskip.ShuntBackend,
 		}
 		routes = append(routes, r404)
+
+		// reject route per host with 400, but not for internal routes
+		if !strings.HasSuffix(host, ".cluster.local") {
+			reject400 := &eskip.Route{
+				Id: createRejectRouteID(fg, host),
+				Predicates: []*eskip.Predicate{
+					{
+						Name: predicates.PathSubtreeName,
+						Args: []interface{}{
+							"/",
+						},
+					}, {
+						Name: predicates.HostAnyName,
+						Args: []interface{}{
+							host,
+							host + ":443",
+						},
+					}, {
+						Name: predicates.HeaderName,
+						Args: []interface{}{
+							"X-Forwarded-Proto",
+							"http",
+						},
+					},
+				},
+				Filters: []*eskip.Filter{
+					{
+						Name: filters.OAuthTokeninfoAllScopeName,
+						Args: []interface{}{
+							"uid",
+						},
+					}, {
+						Name: filters.UnverifiedAuditLogName,
+						Args: []interface{}{
+							"sub",
+						},
+					}, {
+						Name: filters.StatusName,
+						Args: []interface{}{
+							400,
+						},
+					}, {
+						Name: filters.InlineContentName,
+						Args: []interface{}{
+							`{"title":"Gateway Rejected","status":400,"detail":"TLS is required","type":"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https"}`,
+						},
+					},
+				},
+				BackendType: eskip.ShuntBackend,
+			}
+			routes = append(routes, reject400)
+
+		}
 
 		var defaultPrivileges []interface{}
 		for _, priv := range fg.Spec.AllowList {
@@ -431,6 +487,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		}
 
 		for _, p := range fg.Spec.Paths.Path {
+			// TODO(sszuecs): cleanup
 			println("fg:", fg.Metadata.Namespace, fg.Metadata.Name, "with host", host, "with path:", p.Path, "methods:", len(p.Methods))
 			methods := make([]string, 0, len(p.Methods))
 			for _, m := range p.Methods {
@@ -452,9 +509,10 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 					Method: strings.ToUpper(m.Method),
 					Predicates: []*eskip.Predicate{
 						{
-							Name: predicates.HostName,
+							Name: predicates.HostAnyName,
 							Args: []interface{}{
 								host,
+								host + ":443",
 							},
 						},
 						{
@@ -472,15 +530,6 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 						},
 					},
 					Filters: []*eskip.Filter{
-						{
-							//inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
-							Name: filters.InlineContentIfStatusName,
-							Args: []interface{}{
-								429,
-								"{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}",
-								"application/problem+json",
-							},
-						},
 						{
 							// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
 							Name: filters.OAuthTokeninfoAnyKVName,
@@ -515,6 +564,15 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				// add optional ratelimit
 				if m.Ratelimit != nil {
 					r.Filters = append(r.Filters,
+						&eskip.Filter{
+							//inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+							Name: filters.InlineContentIfStatusName,
+							Args: []interface{}{
+								429,
+								"{\"title\":\"Rate limit exceeded\",\"detail\":\"See the retry-after header for how many seconds to wait before retrying.\",\"status\":429}",
+								"application/problem+json",
+							},
+						},
 						&eskip.Filter{
 							// clusterClientRatelimit("spp-brand-service_api-brand-assignments-id_DELETE", 30, "1m", "Authorization")
 							Name: filters.ClusterClientRatelimitName,
@@ -652,11 +710,14 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, me
 			LBAlgorithm: eskipBackend.lbAlgorithm,
 			LBEndpoints: eskipBackend.lbEndpoints,
 			Path:        path,
-			Method:      m,
+			Method:      strings.ToUpper(m),
 			Predicates: []*eskip.Predicate{
 				{
 					Name: predicates.HostAnyName,
-					Args: []interface{}{host},
+					Args: []interface{}{
+						host,
+						host + ":443",
+					},
 				},
 				{
 					Name: predicates.HeaderName,
@@ -744,7 +805,10 @@ func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string
 		Predicates: []*eskip.Predicate{
 			{
 				Name: predicates.HostAnyName,
-				Args: []interface{}{host},
+				Args: []interface{}{
+					host,
+					host + ":443",
+				},
 			},
 			{
 				Name: predicates.HeaderName,
