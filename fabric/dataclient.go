@@ -384,6 +384,13 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			lbEndpoints: endpoints,
 		}
 
+		defaultPrivileges := []interface{}{
+			"uid",
+		}
+		for _, priv := range fg.Spec.AllowList {
+			defaultPrivileges = append(defaultPrivileges, priv)
+		}
+
 		// 404 route per host
 		r404 := &eskip.Route{
 			Id: create404RouteID(fg, host),
@@ -404,9 +411,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			Filters: []*eskip.Filter{
 				{
 					Name: filters.OAuthTokeninfoAllScopeName,
-					Args: []interface{}{
-						"uid",
-					},
+					Args: defaultPrivileges,
 				}, {
 					Name: filters.UnverifiedAuditLogName,
 					Args: []interface{}{
@@ -455,9 +460,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				Filters: []*eskip.Filter{
 					{
 						Name: filters.OAuthTokeninfoAllScopeName,
-						Args: []interface{}{
-							"uid",
-						},
+						Args: defaultPrivileges,
 					}, {
 						Name: filters.UnverifiedAuditLogName,
 						Args: []interface{}{
@@ -479,11 +482,6 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			}
 			routes = append(routes, reject400)
 
-		}
-
-		var defaultPrivileges []interface{}
-		for _, priv := range fg.Spec.AllowList {
-			defaultPrivileges = append(defaultPrivileges, priv)
 		}
 
 		for _, p := range fg.Spec.Paths.Path {
@@ -612,13 +610,17 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 								"realm",
 							},
 						},
-						{
+					}...)
+				// optional cors
+				if len(allowedOrigins) > 0 {
+					r.Filters = append(r.Filters,
+						&eskip.Filter{
 							// corsOrigin("https://foo.example.org", "https://bar.example.com")
 							Name: filters.CorsOriginName,
 							Args: allowedOrigins,
 						},
-					}...)
-
+					)
+				}
 				routes = append(routes, r)
 
 				// ratelimit overwrites require separated routes with predicates.JWTPayloadAllKVName
@@ -768,7 +770,7 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, me
 				}, {
 					// oauthTokeninfoAllScope("uid")
 					Name: filters.OAuthTokeninfoAllScopeName,
-					// TODO(sszuecs): in the future should be configurable
+					// TODO(sszuecs): in the future should be configurable, maybe defaultprivileges
 					Args: []interface{}{"uid"},
 				}, {
 					// flowId("reuse")
