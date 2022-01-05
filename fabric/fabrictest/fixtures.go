@@ -221,12 +221,7 @@ func testFixture(t *testing.T, f fixtureSet) {
 		}
 
 		if len(routes) != len(expectedRoutes) {
-			t.Logf("diff\n%s:", cmp.Diff(
-				eskip.Print(eskip.PrettyPrintInfo{Pretty: true}, eskip.CanonicalList(expectedRoutes)...),
-				eskip.Print(eskip.PrettyPrintInfo{Pretty: true}, eskip.CanonicalList(routes)...),
-			))
-
-			t.Fatalf("Failed to get expected number of routes %d, got %d", len(expectedRoutes), len(routes))
+			t.Errorf("Failed to get expected number of routes %d, got %d", len(expectedRoutes), len(routes))
 		}
 
 		sort.SliceStable(routes, func(i, j int) bool {
