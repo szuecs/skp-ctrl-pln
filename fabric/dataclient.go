@@ -540,17 +540,17 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 							},
 						},
 						{
+							// oauthTokeninfoAllScope("uid", "spp-brand-service.brands.write")
+							Name: filters.OAuthTokeninfoAllScopeName,
+							Args: privs,
+						},
+						{
 							// unverifiedAuditLog("sub")
 							Name: filters.UnverifiedAuditLogName,
 							Args: []interface{}{
 								// TODO(sszuecs): in the future should be configurable
 								"sub",
 							},
-						},
-						{
-							// oauthTokeninfoAllScope("uid", "spp-brand-service.brands.write")
-							Name: filters.OAuthTokeninfoAllScopeName,
-							Args: privs,
 						},
 					},
 					BackendType: eskipBackend.Type,
@@ -761,17 +761,17 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, me
 					Name: filters.EnableAccessLogName,
 					Args: []interface{}{2, 4, 5},
 				}, {
+					// oauthTokeninfoAllScope("uid")
+					Name: filters.OAuthTokeninfoAllScopeName,
+					// TODO(sszuecs): in the future should be configurable, maybe defaultprivileges
+					Args: []interface{}{"uid"},
+				}, {
 					// unverifiedAuditLog("https://identity.zalando.com/managed-id")
 					Name: filters.UnverifiedAuditLogName,
 					Args: []interface{}{
 						// TODO(sszuecs): in the future should be configurable
 						"https://identity.zalando.com/managed-id",
 					},
-				}, {
-					// oauthTokeninfoAllScope("uid")
-					Name: filters.OAuthTokeninfoAllScopeName,
-					// TODO(sszuecs): in the future should be configurable, maybe defaultprivileges
-					Args: []interface{}{"uid"},
 				}, {
 					// flowId("reuse")
 					Name: filters.FlowIdName,
@@ -786,12 +786,16 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, me
 						"scope",
 						"realm",
 					},
-				}, {
-					// corsOrigin("https://example.org", "https://example.com")
-					Name: filters.CorsOriginName,
-					Args: allowedOrigins,
 				},
 			},
+		}
+		if len(allowedOrigins) > 0 {
+
+			rr.Filters = append(rr.Filters, &eskip.Filter{
+				// corsOrigin("https://example.org", "https://example.com")
+				Name: filters.CorsOriginName,
+				Args: allowedOrigins,
+			})
 		}
 		r = append(r, rr)
 	}

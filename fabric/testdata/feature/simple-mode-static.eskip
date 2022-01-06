@@ -7,8 +7,8 @@ fg_404_default_simple_mode_static_my_app_example_org__: HostAny("my-app.example.
 
 fg_default_simple_mode_static_my_app_example_org__resources_get: Header("X-Forwarded-Proto", "https") && HostAny("my-app.example.org", "my-app.example.org:443") && Method("GET") && Path("/resources") && Weight(23)
 	-> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-	-> unverifiedAuditLog("sub")
 	-> oauthTokeninfoAllScope("uid")
+	-> unverifiedAuditLog("sub")
 	-> flowId("reuse")
 	-> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
 	-> <roundRobin, "http://10.2.23.42:8080", "http://10.2.5.4:8080">;
