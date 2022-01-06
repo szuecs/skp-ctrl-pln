@@ -354,7 +354,10 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		allowedOrigins = make([]interface{}, 0, len(cors.AllowedOrigins))
 		sort.Strings(cors.AllowedOrigins)
 		for _, w := range cors.AllowedOrigins {
-			allowedOrigins = append(allowedOrigins, "https://"+w)
+			// explicitly disallow * by design
+			if w != "*" {
+				allowedOrigins = append(allowedOrigins, "https://"+w)
+			}
 		}
 	}
 
@@ -659,9 +662,12 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				}
 			}
 
-			if fg.Spec.Cors != nil {
+			if fg.Spec.Cors != nil && len(allowedOrigins) > 0 {
 				rID := createCorsRouteID(fg, host, p.Path)
 				corsMethods := strings.ToUpper(strings.Join(methods, ", "))
+				if !strings.Contains(corsMethods, "OPTIONS") {
+					corsMethods = corsMethods + ", OPTIONS"
+				}
 				corsAllowedHeaders := strings.Join(fg.Spec.Cors.AllowedHeaders, ", ")
 				routes = append(routes, createCorsRoute(rID, host, p.Path, corsMethods, corsAllowedHeaders, methods, allowedOrigins))
 			}
@@ -790,7 +796,6 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, me
 			},
 		}
 		if len(allowedOrigins) > 0 {
-
 			rr.Filters = append(rr.Filters, &eskip.Filter{
 				// corsOrigin("https://example.org", "https://example.com")
 				Name: filters.CorsOriginName,
@@ -842,7 +847,7 @@ func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string
 				Name: filters.CorsOriginName,
 				Args: allowedOrigins,
 			}, {
-				// appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS") ->
+				// appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS")
 				Name: filters.AppendResponseHeaderName,
 				Args: stringToEmptyInterface([]string{"Access-Control-Allow-Methods", corsMethods}),
 			}, {
