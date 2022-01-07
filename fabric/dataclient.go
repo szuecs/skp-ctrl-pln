@@ -628,9 +628,9 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 
 				// ratelimit overwrites require separated routes with predicates.JWTPayloadAllKVName
 				if m.Ratelimit != nil {
-					for _, rTarget := range m.Ratelimit.Target {
+					for i, rTarget := range m.Ratelimit.Target {
 						rr := eskip.Copy(r)
-						rr.Id = fmt.Sprintf("%s_%s", rr.Id, rTarget.UID)
+						rr.Id = fmt.Sprintf("%s%d", rr.Id, i)
 						// add predicate to match client application
 						rr.Predicates = append(rr.Predicates,
 							&eskip.Predicate{
