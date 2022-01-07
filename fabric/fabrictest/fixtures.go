@@ -234,10 +234,15 @@ func testFixture(t *testing.T, f fixtureSet) {
 			t.Error("Failed to convert the resources to the right routes.")
 			t.Logf("got:\n%s", eskip.String(eskip.CanonicalList(routes)...))
 			t.Logf("expected:\n%s", eskip.String(eskip.CanonicalList(expectedRoutes)...))
+			expectedString := eskip.Print(eskip.PrettyPrintInfo{Pretty: true}, eskip.CanonicalList(expectedRoutes)...)
+			gotString := eskip.Print(eskip.PrettyPrintInfo{Pretty: true}, eskip.CanonicalList(routes)...)
 			t.Logf("diff\n%s:", cmp.Diff(
-				eskip.Print(eskip.PrettyPrintInfo{Pretty: true}, eskip.CanonicalList(expectedRoutes)...),
-				eskip.Print(eskip.PrettyPrintInfo{Pretty: true}, eskip.CanonicalList(routes)...),
+				expectedString,
+				gotString,
 			))
+			// TODO(sszuecs): cleanup
+			// os.WriteFile("expected.eskip", []byte(expectedString), 0644)
+			// os.WriteFile("got.eskip", []byte(gotString), 0644)
 		}
 	}
 

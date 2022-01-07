@@ -628,9 +628,9 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 
 				// ratelimit overwrites require separated routes with predicates.JWTPayloadAllKVName
 				if m.Ratelimit != nil {
-					for i, rTarget := range m.Ratelimit.Target {
-						rr := *r
-						rr.Id = fmt.Sprintf("%s%d", rr.Id, i)
+					for _, rTarget := range m.Ratelimit.Target {
+						rr := eskip.Copy(r)
+						rr.Id = fmt.Sprintf("%s_%s", rr.Id, rTarget.UID)
 						// add predicate to match client application
 						rr.Predicates = append(rr.Predicates,
 							&eskip.Predicate{
@@ -641,10 +641,10 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 								},
 							},
 						)
-						// replace ratelimit with new
-						for i := range rr.Filters {
-							if rr.Filters[i].Name == filters.ClusterClientRatelimitName {
-								rr.Filters[i].Args = []interface{}{
+						// find and replace ratelimit with new
+						for j := range rr.Filters {
+							if rr.Filters[j].Name == filters.ClusterClientRatelimitName {
+								rr.Filters[j].Args = []interface{}{
 									fmt.Sprintf("%s_%s_%s_%s",
 										fg.Metadata.Name,
 										strings.Trim(nonWord.ReplaceAllString(p.Path, "-"), "-"),
@@ -658,7 +658,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 								}
 							}
 						}
-						routes = append(routes, &rr)
+						routes = append(routes, rr)
 					}
 				}
 			}
