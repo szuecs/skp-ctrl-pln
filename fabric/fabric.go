@@ -396,9 +396,6 @@ func validateMethod(fm *FabricMethod) error {
 		if s := fm.AllowList.State; s != "enabled" && s != "disabled" {
 			return fmt.Errorf("invalid x-fabric-whitelist state: %s", s)
 		}
-		if len(fm.AllowList.UIDs) == 0 {
-			return fmt.Errorf("invalid x-fabric-whitelist has to have a service-list: %d", len(fm.AllowList.UIDs))
-		}
 	}
 
 	switch fm.Method {

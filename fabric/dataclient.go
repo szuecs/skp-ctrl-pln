@@ -387,104 +387,22 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			lbEndpoints: endpoints,
 		}
 
-		defaultPrivileges := []interface{}{
+		defaultScopePrivileges := []interface{}{
 			"uid",
 		}
-		for _, priv := range fg.Spec.AllowList {
-			defaultPrivileges = append(defaultPrivileges, priv)
+		var defaultAllowList []interface{}
+		for _, app := range fg.Spec.AllowList {
+			defaultAllowList = append(defaultAllowList, "sub", app)
 		}
 
 		// 404 route per host
-		r404 := &eskip.Route{
-			Id: create404RouteID(fg, host),
-			Predicates: []*eskip.Predicate{
-				{
-					Name: predicates.PathSubtreeName,
-					Args: []interface{}{
-						"/",
-					},
-				}, {
-					Name: predicates.HostAnyName,
-					Args: []interface{}{
-						host,
-						host + ":443",
-					},
-				},
-			},
-			Filters: []*eskip.Filter{
-				{
-					Name: filters.OAuthTokeninfoAllScopeName,
-					Args: defaultPrivileges,
-				}, {
-					Name: filters.UnverifiedAuditLogName,
-					Args: []interface{}{
-						"sub",
-					},
-				}, {
-					Name: filters.StatusName,
-					Args: []interface{}{
-						404,
-					},
-				}, {
-					Name: filters.InlineContentName,
-					Args: []interface{}{
-						`{"title":"Gateway Rejected","status":404,"detail":"Gateway Route Not Matched"}`,
-					},
-				},
-			},
-			BackendType: eskip.ShuntBackend,
-		}
+		r404 := create404Route(create404RouteID(fg, host), "/", host, defaultScopePrivileges)
 		routes = append(routes, r404)
 
-		// reject route per host with 400, but not for internal routes
+		// reject plain http per host with 400, but not for internal routes
 		if !strings.HasSuffix(host, ".cluster.local") {
-			reject400 := &eskip.Route{
-				Id: createRejectRouteID(fg, host),
-				Predicates: []*eskip.Predicate{
-					{
-						Name: predicates.PathSubtreeName,
-						Args: []interface{}{
-							"/",
-						},
-					}, {
-						Name: predicates.HostAnyName,
-						Args: []interface{}{
-							host,
-							host + ":443",
-						},
-					}, {
-						Name: predicates.HeaderName,
-						Args: []interface{}{
-							"X-Forwarded-Proto",
-							"http",
-						},
-					},
-				},
-				Filters: []*eskip.Filter{
-					{
-						Name: filters.OAuthTokeninfoAllScopeName,
-						Args: defaultPrivileges,
-					}, {
-						Name: filters.UnverifiedAuditLogName,
-						Args: []interface{}{
-							"sub",
-						},
-					}, {
-						Name: filters.StatusName,
-						Args: []interface{}{
-							400,
-						},
-					}, {
-						Name: filters.InlineContentName,
-						Args: []interface{}{
-							`{"title":"Gateway Rejected","status":400,"detail":"TLS is required","type":"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https"}`,
-						},
-					},
-				},
-				BackendType: eskip.ShuntBackend,
-			}
+			reject400 := createRejectRoute(createRejectRouteID(fg, host), "/", host, defaultScopePrivileges)
 			routes = append(routes, reject400)
-
 		}
 
 		for _, p := range fg.Spec.Paths.Path {
@@ -495,170 +413,41 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				methods = append(methods, m.Method)
 
 				// AllowList per method and global default
+				//     example: oauthTokeninfoAllScope("uid", "foo.write")
 				var privs []interface{}
 				for _, priv := range m.Privileges {
 					privs = append(privs, priv)
 				}
 				if len(privs) == 0 {
-					privs = defaultPrivileges
+					privs = defaultScopePrivileges
 				}
 
-				// normal host+path+method route
-				r := &eskip.Route{
-					Id:     createRouteID("fg", fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path, m.Method),
-					Path:   p.Path,
-					Method: strings.ToUpper(m.Method),
-					Predicates: []*eskip.Predicate{
-						{
-							Name: predicates.HostAnyName,
-							Args: []interface{}{
-								host,
-								host + ":443",
-							},
-						},
-						{
-							Name: predicates.HeaderName,
-							Args: []interface{}{
-								"X-Forwarded-Proto",
-								"https",
-							},
-						},
-						{
-							Name: predicates.WeightName,
-							Args: []interface{}{
-								23, // TODO(sszuecs) needs checking
-							},
-						},
-					},
-					Filters: []*eskip.Filter{
-						{
-							// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-							Name: filters.OAuthTokeninfoAnyKVName,
-							Args: []interface{}{
-								// TODO(sszuecs): should be configurable
-								"realm",
-								"/services",
-								"realm",
-								"/employees",
-							},
-						},
-						{
-							// oauthTokeninfoAllScope("uid", "spp-brand-service.brands.write")
-							Name: filters.OAuthTokeninfoAllScopeName,
-							Args: privs,
-						},
-						{
-							// unverifiedAuditLog("sub")
-							Name: filters.UnverifiedAuditLogName,
-							Args: []interface{}{
-								// TODO(sszuecs): in the future should be configurable
-								"sub",
-							},
-						},
-					},
-					BackendType: eskipBackend.Type,
-					Backend:     eskipBackend.backend,
-					LBAlgorithm: eskipBackend.lbAlgorithm,
-					LBEndpoints: eskipBackend.lbEndpoints,
-				}
-
-				// add optional ratelimit
-				if m.Ratelimit != nil {
-					r.Filters = append(r.Filters,
-						&eskip.Filter{
-							//inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
-							Name: filters.InlineContentIfStatusName,
-							Args: []interface{}{
-								429,
-								"{\"title\":\"Rate limit exceeded\",\"detail\":\"See the retry-after header for how many seconds to wait before retrying.\",\"status\":429}",
-								"application/problem+json",
-							},
-						},
-						&eskip.Filter{
-							// clusterClientRatelimit("spp-brand-service_api-brand-assignments-id_DELETE", 30, "1m", "Authorization")
-							Name: filters.ClusterClientRatelimitName,
-							Args: []interface{}{
-								fmt.Sprintf("%s_%s_%s",
-									fg.Metadata.Name,
-									strings.Trim(nonWord.ReplaceAllString(p.Path, "-"), "-"),
-									m.Method,
-								),
-								m.Ratelimit.DefaultRate,
-								m.Ratelimit.Period,
-								// optional header, TODO(sszuecs): maybe configurable in the future
-								"Authorization",
-							},
-						},
-					)
-				}
-
-				// add rest filters
-				r.Filters = append(r.Filters,
-					[]*eskip.Filter{
-						{
-							// flowId("reuse")
-							Name: filters.FlowIdName,
-							Args: []interface{}{
-								flowid.ReuseParameterValue,
-							},
-						},
-						{
-							// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
-							Name: filters.ForwardTokenName,
-							Args: []interface{}{
-								// TODO(sszuecs): in the future should be configurable
-								"X-TokenInfo-Forward",
-								"uid",
-								"scope",
-								"realm",
-							},
-						},
-					}...)
-				// optional cors
-				if len(allowedOrigins) > 0 {
-					r.Filters = append(r.Filters,
-						&eskip.Filter{
-							// corsOrigin("https://foo.example.org", "https://bar.example.com")
-							Name: filters.CorsOriginName,
-							Args: allowedOrigins,
-						},
-					)
-				}
-				routes = append(routes, r)
-
-				// ratelimit overwrites require separated routes with predicates.JWTPayloadAllKVName
-				if m.Ratelimit != nil {
-					for i, rTarget := range m.Ratelimit.Target {
-						rr := eskip.Copy(r)
-						rr.Id = fmt.Sprintf("%s%d", rr.Id, i)
-						// add predicate to match client application
-						rr.Predicates = append(rr.Predicates,
-							&eskip.Predicate{
-								Name: predicates.JWTPayloadAllKVName,
-								Args: []interface{}{
-									"sub", // TODO(sszuecs) maybe configurable in the future
-									rTarget.UID,
-								},
-							},
-						)
-						// find and replace ratelimit with new
-						for j := range rr.Filters {
-							if rr.Filters[j].Name == filters.ClusterClientRatelimitName {
-								rr.Filters[j].Args = []interface{}{
-									fmt.Sprintf("%s_%s_%s_%s",
-										fg.Metadata.Name,
-										strings.Trim(nonWord.ReplaceAllString(p.Path, "-"), "-"),
-										m.Method,
-										rTarget.UID,
-									),
-									rTarget.Rate,
-									m.Ratelimit.Period,
-									// optional header, TODO(sszuecs): maybe configurable in the future
-									"Authorization",
-								}
-							}
+				// local allowlist overrides default. In case allow list is disabled only use scopes.
+				//     example: oauthTokeninfoAnyKV("sub", "app1", "sub", "app2", ..)
+				var allowedServices []interface{}
+				disableAllowList := false
+				if m.AllowList != nil {
+					switch m.AllowList.State {
+					case "disabled":
+						disableAllowList = true
+					default:
+						for _, svcName := range m.AllowList.UIDs {
+							// TODO(sszuecs): in the future "sub" should be configurable
+							allowedServices = append(allowedServices, "sub", svcName)
 						}
-						routes = append(routes, rr)
+					}
+				} else if len(defaultAllowList) > 0 {
+					allowedServices = append(allowedServices, defaultAllowList...)
+				}
+
+				if disableAllowList || len(allowedServices) > 0 {
+					// normal host+path+method service route
+					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServices, privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
+					routes = append(routes, r)
+
+					// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
+					if m.Ratelimit != nil {
+						createRatelimitRoutes(r, m, fg.Metadata.Name, p.Path)
 					}
 				}
 			}
@@ -674,7 +463,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			}
 			if len(fg.Spec.Admins) != 0 {
 				rID := createAdminRouteID(fg, host, p.Path)
-				adminRoutes := createAdminRoute(eskipBackend, rID, host, p.Path, methods, fg.Spec.Admins, allowedOrigins)
+				adminRoutes := createAdminRoutes(eskipBackend, rID, host, p.Path, methods, fg.Spec.Admins, allowedOrigins)
 				routes = append(routes, adminRoutes...)
 
 			}
@@ -703,7 +492,281 @@ func stringToEmptyInterface(a []string) []interface{} {
 	return res
 }
 
-func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path string, methods, admins []string, allowedOrigins []interface{}) []*eskip.Route {
+func create404Route(rid, path, host string, privs []interface{}) *eskip.Route {
+	return &eskip.Route{
+		Id: rid,
+		Predicates: []*eskip.Predicate{
+			{
+				Name: predicates.PathSubtreeName,
+				Args: []interface{}{
+					path,
+				},
+			}, {
+				Name: predicates.HostAnyName,
+				Args: []interface{}{
+					host,
+					host + ":443",
+				},
+			},
+		},
+		Filters: []*eskip.Filter{
+			{
+				Name: filters.OAuthTokeninfoAllScopeName,
+				Args: privs,
+			}, {
+				Name: filters.UnverifiedAuditLogName,
+				Args: []interface{}{
+					"sub",
+				},
+			}, {
+				Name: filters.StatusName,
+				Args: []interface{}{
+					404,
+				},
+			}, {
+				Name: filters.InlineContentName,
+				Args: []interface{}{
+					`{"title":"Gateway Rejected","status":404,"detail":"Gateway Route Not Matched"}`,
+				},
+			},
+		},
+		BackendType: eskip.ShuntBackend,
+	}
+}
+
+func createRejectRoute(rid, path, host string, privs []interface{}) *eskip.Route {
+	return &eskip.Route{
+		Id: rid,
+		Predicates: []*eskip.Predicate{
+			{
+				Name: predicates.PathSubtreeName,
+				Args: []interface{}{
+					path,
+				},
+			}, {
+				Name: predicates.HostAnyName,
+				Args: []interface{}{
+					host,
+					host + ":443",
+				},
+			}, {
+				Name: predicates.HeaderName,
+				Args: []interface{}{
+					"X-Forwarded-Proto",
+					"http",
+				},
+			},
+		},
+		Filters: []*eskip.Filter{
+			{
+				Name: filters.OAuthTokeninfoAllScopeName,
+				Args: privs,
+			}, {
+				Name: filters.UnverifiedAuditLogName,
+				Args: []interface{}{
+					"sub",
+				},
+			}, {
+				Name: filters.StatusName,
+				Args: []interface{}{
+					400,
+				},
+			}, {
+				Name: filters.InlineContentName,
+				Args: []interface{}{
+					`{"title":"Gateway Rejected","status":400,"detail":"TLS is required","type":"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https"}`,
+				},
+			},
+		},
+		BackendType: eskip.ShuntBackend,
+	}
+}
+
+func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path string) *eskip.Route {
+	r := &eskip.Route{
+		Id:     createRouteID("fg", name, namespace, host, path, m.Method),
+		Path:   path,
+		Method: strings.ToUpper(m.Method),
+		Predicates: []*eskip.Predicate{
+			{
+				Name: predicates.HostAnyName,
+				Args: []interface{}{
+					host,
+					host + ":443",
+				},
+			},
+			{
+				Name: predicates.HeaderName,
+				Args: []interface{}{
+					"X-Forwarded-Proto",
+					"https",
+				},
+			},
+			{
+				Name: predicates.WeightName,
+				Args: []interface{}{
+					23, // TODO(sszuecs) needs checking
+				},
+			},
+		},
+		Filters: []*eskip.Filter{
+			{
+				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+				Name: filters.OAuthTokeninfoAnyKVName,
+				Args: []interface{}{
+					// TODO(sszuecs): should be configurable
+					"realm",
+					"/services",
+					"realm",
+					"/employees",
+				},
+			},
+			{
+				// oauthTokeninfoAllScope("uid", "foo.write")
+				Name: filters.OAuthTokeninfoAllScopeName,
+				Args: privs,
+			},
+		},
+		BackendType: eskipBackend.Type,
+		Backend:     eskipBackend.backend,
+		LBAlgorithm: eskipBackend.lbAlgorithm,
+		LBEndpoints: eskipBackend.lbEndpoints,
+	}
+
+	// allow list via x-fabric-whitelist configuration
+	if len(allowedServices) > 0 {
+		// oauthTokeninfoAnyKV("sub", "my-app1", "sub", "my-app2")
+		r.Filters = append(r.Filters,
+			&eskip.Filter{
+				Name: filters.OAuthTokeninfoAnyKVName,
+				Args: allowedServices,
+			},
+		)
+	}
+
+	r.Filters = append(r.Filters,
+		&eskip.Filter{
+			// unverifiedAuditLog("sub")
+			Name: filters.UnverifiedAuditLogName,
+			Args: []interface{}{
+				// TODO(sszuecs): in the future should be configurable
+				"sub",
+			},
+		},
+	)
+
+	// add optional ratelimit (default ratelimit here, overrides later below adding new routes)
+	if m.Ratelimit != nil {
+		r.Filters = append(r.Filters,
+			&eskip.Filter{
+				//inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+				Name: filters.InlineContentIfStatusName,
+				Args: []interface{}{
+					429,
+					"{\"title\":\"Rate limit exceeded\",\"detail\":\"See the retry-after header for how many seconds to wait before retrying.\",\"status\":429}",
+					"application/problem+json",
+				},
+			},
+			&eskip.Filter{
+				// clusterClientRatelimit("spp-brand-service_api-brand-assignments-id_DELETE", 30, "1m", "Authorization")
+				Name: filters.ClusterClientRatelimitName,
+				Args: []interface{}{
+					// TODO(sszuecs): maybe we want to add namespace here, too (assume people could use namespaces to separate prod/staging, this would otherwise count both)
+					fmt.Sprintf("%s_%s_%s",
+						name,
+						strings.Trim(nonWord.ReplaceAllString(path, "-"), "-"),
+						m.Method,
+					),
+					m.Ratelimit.DefaultRate,
+					m.Ratelimit.Period,
+					// optional header, TODO(sszuecs): maybe configurable in the future
+					"Authorization",
+				},
+			},
+		)
+	}
+
+	// add rest filters
+	r.Filters = append(r.Filters,
+		[]*eskip.Filter{
+			{
+				// flowId("reuse")
+				Name: filters.FlowIdName,
+				Args: []interface{}{
+					flowid.ReuseParameterValue,
+				},
+			},
+			{
+				// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+				Name: filters.ForwardTokenName,
+				Args: []interface{}{
+					// TODO(sszuecs): in the future should be configurable
+					"X-TokenInfo-Forward",
+					"uid",
+					"scope",
+					"realm",
+				},
+			},
+		}...)
+
+	// optional cors
+	if len(allowedOrigins) > 0 {
+		r.Filters = append(r.Filters,
+			&eskip.Filter{
+				// corsOrigin("https://foo.example.org", "https://bar.example.com")
+				Name: filters.CorsOriginName,
+				Args: allowedOrigins,
+			},
+		)
+	}
+
+	return r
+}
+
+func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) []*eskip.Route {
+	routes := make([]*eskip.Route, 0, len(m.Ratelimit.Target))
+
+	for i, rTarget := range m.Ratelimit.Target {
+		rr := eskip.Copy(r)
+		rr.Id = fmt.Sprintf("%s_rate%d", rr.Id, i)
+
+		// add predicate to match client application
+		rr.Predicates = append(rr.Predicates,
+			&eskip.Predicate{
+				Name: predicates.JWTPayloadAllKVName,
+				Args: []interface{}{
+					"sub", // TODO(sszuecs) maybe configurable in the future
+					rTarget.UID,
+				},
+			},
+		)
+
+		// find and replace ratelimit: type, group, rate. period stays the same
+		for j := range rr.Filters {
+			if rr.Filters[j].Name == filters.ClusterClientRatelimitName {
+				// replace clusterClientRatelimit with clusterRatelimit,
+				// because we have separate routes per UID and we can scale
+				// shards with clusterRatelimit
+				rr.Filters[j].Name = filters.ClusterRatelimitName
+				rr.Filters[j].Args = []interface{}{
+					fmt.Sprintf("%s_%s_%s_%s",
+						name,
+						strings.Trim(nonWord.ReplaceAllString(path, "-"), "-"),
+						m.Method,
+						rTarget.UID,
+					),
+					rTarget.Rate,
+					m.Ratelimit.Period,
+				}
+			}
+		}
+		routes = append(routes, rr)
+	}
+	return routes
+
+}
+
+func createAdminRoutes(eskipBackend *eskipBackend, routeID, host, path string, methods, admins []string, allowedOrigins []interface{}) []*eskip.Route {
 	adminsArgs := make([]interface{}, 0, 2*len(admins))
 	for _, s := range admins {
 		// TODO(sszuecs): this should be configurable
