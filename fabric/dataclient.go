@@ -440,14 +440,14 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 					allowedServices = append(allowedServices, defaultAllowList...)
 				}
 
-				if disableAllowList || len(allowedServices) > 0 {
+				if disableAllowList || len(allowedServices) > 0 || len(defaultAllowList) == 0 {
 					// normal host+path+method service route
 					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServices, privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
 					routes = append(routes, r)
 
 					// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
-					if m.Ratelimit != nil {
-						createRatelimitRoutes(r, m, fg.Metadata.Name, p.Path)
+					if m.Ratelimit != nil && len(m.Ratelimit.Target) > 0 {
+						routes = append(routes, createRatelimitRoutes(r, m, fg.Metadata.Name, p.Path)...)
 					}
 				}
 			}
@@ -728,7 +728,7 @@ func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) [
 
 	for i, rTarget := range m.Ratelimit.Target {
 		rr := eskip.Copy(r)
-		rr.Id = fmt.Sprintf("%s_rate%d", rr.Id, i)
+		rr.Id = fmt.Sprintf("%s%d", rr.Id, i)
 
 		// add predicate to match client application
 		rr.Predicates = append(rr.Predicates,
