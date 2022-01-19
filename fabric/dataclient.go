@@ -434,11 +434,13 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 							allowedServices = append(allowedServices, "sub", svcName)
 						}
 					}
-				} else {
-					allowedServices = append(allowedServices, defaultAllowList...)
 				}
 
-				if disableAllowList || len(allowedServices) > 0 || m.AllowList == nil {
+				switch {
+				case m.AllowList == nil:
+					allowedServices = append(allowedServices, defaultAllowList...)
+					fallthrough
+				case disableAllowList || len(allowedServices) > 0:
 					// normal host+path+method service route
 					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServices, privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
 					routes = append(routes, r)
