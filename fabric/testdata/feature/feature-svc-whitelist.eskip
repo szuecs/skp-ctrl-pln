@@ -14,7 +14,7 @@ fg_reject_default_feature_service_whitelist_feature_service_whitelist_example_or
 
 fg_default_feature_service_whitelist_feature_service_whitelist_example_org__api_resource_get: Path("/api/resource") && Method("GET") && HostAny("feature-service-whitelist.example.org", "feature-service-whitelist.example.org:443") && Header("X-Forwarded-Proto", "https") && Weight(23)
 	-> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-	-> oauthTokeninfoAllScope("my-application.read")
+	-> oauthTokeninfoAllScope("uid", "my-application.read")
 	-> oauthTokeninfoAnyKV("sub", "stups_some-whitelisted-service")
 	-> unverifiedAuditLog("sub")
 	-> flowId("reuse")
@@ -23,7 +23,7 @@ fg_default_feature_service_whitelist_feature_service_whitelist_example_org__api_
 
 fg_default_feature_service_whitelist_feature_service_whitelist_example_org__api_resource_head: Path("/api/resource") && Method("HEAD") && HostAny("feature-service-whitelist.example.org", "feature-service-whitelist.example.org:443") && Header("X-Forwarded-Proto", "https") && Weight(23)
 	-> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-	-> oauthTokeninfoAllScope("my-application.read")
+	-> oauthTokeninfoAllScope("uid", "my-application.read")
 	-> unverifiedAuditLog("sub")
 	-> flowId("reuse")
 	-> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
@@ -31,7 +31,7 @@ fg_default_feature_service_whitelist_feature_service_whitelist_example_org__api_
 
 fg_default_feature_service_whitelist_feature_service_whitelist_example_org__api_resource_post: Path("/api/resource") && Method("POST") && HostAny("feature-service-whitelist.example.org", "feature-service-whitelist.example.org:443") && Header("X-Forwarded-Proto", "https") && Weight(23)
 	-> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-	-> oauthTokeninfoAllScope("my-application.write")
+	-> oauthTokeninfoAllScope("uid", "my-application.write")
 	-> oauthTokeninfoAnyKV("sub", "stups_some-other-service")
 	-> unverifiedAuditLog("sub")
 	-> flowId("reuse")

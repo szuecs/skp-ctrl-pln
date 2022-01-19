@@ -25,7 +25,7 @@ fg_admin_default_simplest_multi_method_simplest_multi_method_example_org__resour
 
 fg_default_simplest_multi_method_simplest_multi_method_example_org__resources_get: Path("/resources") && HostAny("simplest-multi-method.example.org","simplest-multi-method.example.org:443") && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(23)
   -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-  -> oauthTokeninfoAllScope("uid")
+  -> oauthTokeninfoAllScope("uid", "foo")
   -> unverifiedAuditLog("sub")
   -> flowId("reuse")
   -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
@@ -33,7 +33,7 @@ fg_default_simplest_multi_method_simplest_multi_method_example_org__resources_ge
 
 fg_default_simplest_multi_method_simplest_multi_method_example_org__resources_put: Path("/resources") && HostAny("simplest-multi-method.example.org","simplest-multi-method.example.org:443") && Method("PUT") && Header("X-Forwarded-Proto", "https") && Weight(23)
   -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-  -> oauthTokeninfoAllScope("uid")
+  -> oauthTokeninfoAllScope("uid", "foo")
   -> unverifiedAuditLog("sub")
   -> flowId("reuse")
   -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")

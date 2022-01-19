@@ -415,11 +415,9 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				// AllowList per method and global default
 				//     example: oauthTokeninfoAllScope("uid", "foo.write")
 				var privs []interface{}
+				privs = append(privs, defaultScopePrivileges...)
 				for _, priv := range m.Privileges {
 					privs = append(privs, priv)
-				}
-				if len(privs) == 0 {
-					privs = defaultScopePrivileges
 				}
 
 				// local allowlist overrides default. In case allow list is disabled only use scopes.
