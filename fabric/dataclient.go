@@ -340,6 +340,33 @@ func getEndpointsByService(namespace, name, protocol string, servicePort *servic
 	}
 }
 
+// decideAllowedServices returns a definitive list of allowed services as a result of
+// inspecting both global (default) and local (specified on path/method) allow list.
+// Output should be interpreted as follows:
+// - nil: all services are allowed
+// - empty slice: no services are allowed
+// - non-empty slice: a list of allowed services
+func decideAllowedServices(globalAllowList []string, localAllowList *FabricAllowList) []string {
+	if localAllowList != nil {
+		if localAllowList.State == "disabled" {
+			return nil
+		} else {
+			return localAllowList.UIDs
+		}
+	} else {
+		return globalAllowList
+	}
+}
+
+func allowedServicesToFilterArgs(allowedServices []string) []interface{} {
+	var filterArgs []interface{}
+	for _, svcName := range allowedServices {
+		filterArgs = append(filterArgs, "sub", svcName)
+	}
+
+	return filterArgs
+}
+
 func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	routes := make([]*eskip.Route, 0)
 
@@ -390,10 +417,6 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		defaultScopePrivileges := []interface{}{
 			"uid",
 		}
-		var defaultAllowList []interface{}
-		for _, app := range fg.Spec.AllowList {
-			defaultAllowList = append(defaultAllowList, "sub", app)
-		}
 
 		// 404 route per host
 		r404 := create404Route(create404RouteID(fg, host), "/", host, defaultScopePrivileges)
@@ -420,29 +443,9 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 					privs = append(privs, priv)
 				}
 
-				// local allowlist overrides default. In case allow list is disabled only use scopes.
-				//     example: oauthTokeninfoAnyKV("sub", "app1", "sub", "app2", ..)
-				var allowedServices []interface{}
-				disableAllowList := false
-				if m.AllowList != nil {
-					switch m.AllowList.State {
-					case "disabled":
-						disableAllowList = true
-					default:
-						for _, svcName := range m.AllowList.UIDs {
-							// TODO(sszuecs): in the future "sub" should be configurable
-							allowedServices = append(allowedServices, "sub", svcName)
-						}
-					}
-				}
-
-				switch {
-				case m.AllowList == nil:
-					allowedServices = append(allowedServices, defaultAllowList...)
-					fallthrough
-				case disableAllowList || len(allowedServices) > 0:
-					// normal host+path+method service route
-					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServices, privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
+				allowedServices := decideAllowedServices(fg.Spec.AllowList, m.AllowList)
+				if len(allowedServices) > 0 || allowedServices == nil {
+					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
 					routes = append(routes, r)
 
 					// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
