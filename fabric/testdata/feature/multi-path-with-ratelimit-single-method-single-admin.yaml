@@ -8,7 +8,7 @@ spec:
     /resources:
       get:
         x-fabric-privileges:
-        - uid
+        - foo
         x-fabric-ratelimits:
           default-rate: 100
           period: second
@@ -17,7 +17,7 @@ spec:
     /resources/sub:
       get:
         x-fabric-privileges:
-        - uid
+        - foo
         x-fabric-ratelimits:
           default-rate: 120
           period: minute

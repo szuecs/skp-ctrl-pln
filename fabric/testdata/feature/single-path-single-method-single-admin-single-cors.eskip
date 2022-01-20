@@ -17,7 +17,7 @@ fg_admin_default_simplest_with_cors_simplest_example_org__resources__get: Path("
 
 fg_default_simplest_with_cors_simplest_example_org__resources_get: Path("/resources") && HostAny("simplest.example.org","simplest.example.org:443") && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(23)
   -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-  -> oauthTokeninfoAllScope("uid")
+  -> oauthTokeninfoAllScope("uid", "foo")
   -> unverifiedAuditLog("sub")
   -> flowId("reuse")
   -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")

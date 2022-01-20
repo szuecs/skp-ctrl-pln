@@ -8,10 +8,10 @@ spec:
     /resources:
       get:
         x-fabric-privileges:
-        - uid
+        - foo
       put:
         x-fabric-privileges:
-        - uid
+        - foo
   x-fabric-admins:
   - bmooney
   x-fabric-service:

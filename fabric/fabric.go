@@ -3,6 +3,7 @@ package fabric
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -150,7 +151,14 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 							}
 
 							fts := make([]*FabricTarget, 0, len(h))
-							for uid, v := range h {
+							// sorted range through map to have stable results (test flapping)
+							keys := make([]string, 0, len(h))
+							for k := range h {
+								keys = append(keys, k)
+							}
+							sort.Strings(keys)
+							for _, uid := range keys {
+								v := h[uid]
 								rate, ok := v.(float64)
 								if !ok {
 									log.Fatalf("type rate of v '%s' to float64 was not ok", v)
@@ -395,9 +403,6 @@ func validateMethod(fm *FabricMethod) error {
 	if fm.AllowList != nil {
 		if s := fm.AllowList.State; s != "enabled" && s != "disabled" {
 			return fmt.Errorf("invalid x-fabric-whitelist state: %s", s)
-		}
-		if len(fm.AllowList.UIDs) == 0 {
-			return fmt.Errorf("invalid x-fabric-whitelist has to have a service-list: %d", len(fm.AllowList.UIDs))
 		}
 	}
 

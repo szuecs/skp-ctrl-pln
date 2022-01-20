@@ -8,7 +8,7 @@ spec:
     /resources:
       get:
         x-fabric-privileges:
-        - uid
+        - foo
   x-fabric-admins:
   - bmooney
   - szuecs
