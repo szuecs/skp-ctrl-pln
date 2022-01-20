@@ -204,7 +204,15 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 								log.Fatalf("type assertion of staticVal %T headers '%v' to map[string]interafce{} was not ok", staticVal, staticVal)
 								continue
 							}
-							for k, v := range staticMap {
+
+							// sorted range through map to have stable results (test flapping)
+							keys := make([]string, 0, len(staticMap))
+							for k := range staticMap {
+								keys = append(keys, k)
+							}
+							sort.Strings(keys)
+							for _, k := range keys {
+								v := staticMap[k]
 								response.Headers[k], ok = v.(string)
 							}
 						case "status":
