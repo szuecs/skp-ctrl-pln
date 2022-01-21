@@ -461,6 +461,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				if len(allowedServices) > 0 || allowedServices == nil {
 					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
 					applyCompression(r, fg.Spec.Compression)
+					applyStaticResponse(r, m.Response)
 					routes = append(routes, r)
 
 					// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
@@ -477,7 +478,10 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 						// TODO(sszuecs) should be configurable
 						usersAllowed = append(usersAllowed, "https://identity.zalando.com/managed-id", u)
 					}
-					routes = append(routes, createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path))
+					rea := createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
+					applyCompression(rea, fg.Spec.Compression)
+					applyStaticResponse(rea, m.Response)
+					routes = append(routes, rea)
 				}
 			}
 
@@ -492,6 +496,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 			}
 			if len(fg.Spec.Admins) != 0 {
 				rID := createAdminRouteID(fg, host, p.Path)
+				// TODO(sszuecs): currently fabric would also do patchRouteWithStaticResponse in case we have it for the route, let's discuss if it makes sense
 				adminRoutes := createAdminRoutes(eskipBackend, rID, host, p.Path, methods, fg.Spec.Admins, allowedOrigins)
 				routes = append(routes, adminRoutes...)
 
@@ -735,6 +740,7 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 		)
 	}
 
+	// x-fabric-employee-access specifics
 	switch accessType {
 	case "allow_all":
 		// allow all
@@ -781,6 +787,41 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 	}
 
 	return r
+}
+
+func applyStaticResponse(r *eskip.Route, static *FabricResponse) {
+	if static != nil {
+		r.BackendType = eskip.ShuntBackend
+		r.Backend = ""
+		r.LBAlgorithm = ""
+		r.LBEndpoints = nil
+
+		headers := make([]interface{}, 0, 2*len(static.Headers))
+		for _, k := range getSortedKeysStr(static.Headers) {
+			headers = append(headers, k)
+			headers = append(headers, static.Headers[k])
+		}
+
+		r.Filters = append(r.Filters,
+			// -> setResponseHeader("Content-Type", "application/problem+json")
+			&eskip.Filter{
+				Name: filters.SetResponseHeaderName,
+				Args: headers,
+			},
+			// -> status(501)
+			&eskip.Filter{
+				Name: filters.StatusName,
+				Args: []interface{}{static.StatusCode},
+			},
+			// -> inlineContent("{\"title\": \"Issues Updates Not Yet Supported\", \"status\": 501}")
+			&eskip.Filter{
+				Name: filters.InlineContentName,
+				Args: []interface{}{
+					static.Body,
+				},
+			},
+		)
+	}
 }
 
 func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path string) *eskip.Route {
