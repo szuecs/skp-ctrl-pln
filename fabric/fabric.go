@@ -199,7 +199,7 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 								continue
 							}
 							for k, v := range staticMap {
-								response.Headers[k], ok = v.(string)
+								response.Headers[k], _ = v.(string)
 							}
 						case "status":
 							l, ok := staticVal.(float64)
@@ -354,35 +354,35 @@ func validateMethod(fm *FabricMethod) error {
 		return err
 	}
 
-	if n := len(fm.Privileges); n == 0 {
-		/*
-				   TODO(sszuecs): ignore, but needs cross check with
-				   team fabric.  this config exists in
-				   "spp-perf-test-brand-service", which seems to be
-				   wrong by reviwing CRD spec description. But also in
-				   valid cases like:
-			 - Another case, which generates routes for all
-			   employees and services that have uid scope in their
-			   token: /hello: get: {}
-			   This is specified in fabricgateway name: smart-product-platform-test-gateway in
-			   namespace: default Are these routes expected or is this an error?
-			   My validation that I translated from CRD description says it's wrong, but maybe the documentation is just outdated.
+	/*
+		if n := len(fm.Privileges); n == 0 {
+					   TODO(sszuecs): ignore, but needs cross check with
+					   team fabric.  this config exists in
+					   "spp-perf-test-brand-service", which seems to be
+					   wrong by reviwing CRD spec description. But also in
+					   valid cases like:
+				 - Another case, which generates routes for all
+				   employees and services that have uid scope in their
+				   token: /hello: get: {}
+				   This is specified in fabricgateway name: smart-product-platform-test-gateway in
+				   namespace: default Are these routes expected or is this an error?
+				   My validation that I translated from CRD description says it's wrong, but maybe the documentation is just outdated.
 
-			   The last one seems to be on purpose, because of other gateways (fabric-event-scheduler-gateway) use this feature to allow /health access:
-			   /health:
-			     get: {}
+				   The last one seems to be on purpose, because of other gateways (fabric-event-scheduler-gateway) use this feature to allow /health access:
+				   /health:
+				     get: {}
 
-			Same for health in setanta-categories-staging and /metrics in setanta-category-gatekeeper
+				Same for health in setanta-categories-staging and /metrics in setanta-category-gatekeeper
 
-			/api/brands/*:
-			  delete:
-			    x-fabric-whitelist:
-			      service-list:
-			      - stups_spp-brand-service-loadtest
+				/api/brands/*:
+				  delete:
+				    x-fabric-whitelist:
+				      service-list:
+				      - stups_spp-brand-service-loadtest
 
-		*/
-		//return fmt.Errorf("invalid number of x-fabric-privileges %d", n)
-	}
+			//return fmt.Errorf("invalid number of x-fabric-privileges %d", n)
+		}
+	*/
 
 	if fm.Ratelimit != nil {
 		if fm.Ratelimit.DefaultRate < 1 {

@@ -30,17 +30,18 @@ type fixtureSet struct {
 	log            string
 }
 
-type kubeOptionsParser struct {
-	EastWest                 bool               `yaml:"eastWest"`
-	EastWestDomain           string             `yaml:"eastWestDomain"`
-	EastWestRangeDomains     []string           `yaml:"eastWestRangeDomains"`
-	EastWestRangePredicates  []*eskip.Predicate `yaml:"eastWestRangePredicatesAppend"`
-	HTTPSRedirect            bool               `yaml:"httpsRedirect"`
-	HTTPSRedirectCode        int                `yaml:"httpsRedirectCode"`
-	BackendNameTracingTag    bool               `yaml:"backendNameTracingTag"`
-	OnlyAllowedExternalNames bool               `yaml:"onlyAllowedExternalNames"`
-	AllowedExternalNames     []string           `yaml:"allowedExternalNames"`
-}
+// TODO(sszuecs): some of these might be features we need in case we do a PR to skipper
+// type kubeOptionsParser struct {
+// 	EastWest                 bool               `yaml:"eastWest"`
+// 	EastWestDomain           string             `yaml:"eastWestDomain"`
+// 	EastWestRangeDomains     []string           `yaml:"eastWestRangeDomains"`
+// 	EastWestRangePredicates  []*eskip.Predicate `yaml:"eastWestRangePredicatesAppend"`
+// 	HTTPSRedirect            bool               `yaml:"httpsRedirect"`
+// 	HTTPSRedirectCode        int                `yaml:"httpsRedirectCode"`
+// 	BackendNameTracingTag    bool               `yaml:"backendNameTracingTag"`
+// 	OnlyAllowedExternalNames bool               `yaml:"onlyAllowedExternalNames"`
+// 	AllowedExternalNames     []string           `yaml:"allowedExternalNames"`
+// }
 
 func baseNoExt(n string) string {
 	e := filepath.Ext(n)
@@ -128,20 +129,6 @@ func safeFileClose(t *testing.T, fd *os.File) {
 	if err := fd.Close(); err != nil {
 		t.Fatalf("Failed to close file: %v", err)
 	}
-}
-
-func compileRegexps(s []string) ([]*regexp.Regexp, error) {
-	var r []*regexp.Regexp
-	for _, si := range s {
-		ri, err := regexp.Compile(si)
-		if err != nil {
-			return nil, err
-		}
-
-		r = append(r, ri)
-	}
-
-	return r, nil
 }
 
 func testFixture(t *testing.T, f fixtureSet) {

@@ -47,7 +47,6 @@ const (
 
 var (
 	errResourceNotFound     = errors.New("resource not found")
-	errServiceNotFound      = errors.New("service not found")
 	errAPIServerURLNotFound = errors.New("kubernetes API server URL could not be constructed from env vars")
 	errInvalidCertificate   = errors.New("invalid CA")
 
@@ -61,15 +60,11 @@ type clusterClient struct {
 	tokenProvider secrets.SecretsProvider
 	httpClient    *http.Client
 	apiURL        string
-
-	loggedMissingRouteGroups bool
 }
 
 type FabricDataClient struct {
 	quit          chan struct{}
 	ClusterClient *clusterClient
-	testIn        string
-	testOut       string
 }
 
 type Options struct {
