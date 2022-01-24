@@ -468,6 +468,17 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 						routes = append(routes, createRatelimitRoutes(r, m, fg.Metadata.Name, p.Path)...)
 					}
 				}
+
+				// routes to support x-fabric-employee-access
+				if m.EmployeeAccess != nil {
+					usersAllowed := make([]interface{}, 0, 2*len(m.EmployeeAccess.UserList))
+					sort.Strings(m.EmployeeAccess.UserList)
+					for _, u := range m.EmployeeAccess.UserList {
+						// TODO(sszuecs) should be configurable
+						usersAllowed = append(usersAllowed, "https://identity.zalando.com/managed-id", u)
+					}
+					routes = append(routes, createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path))
+				}
 			}
 
 			if fg.Spec.Cors != nil && len(allowedOrigins) > 0 {
@@ -598,6 +609,178 @@ func createRejectRoute(rid, path, host string, privs []interface{}) *eskip.Route
 		},
 		BackendType: eskip.ShuntBackend,
 	}
+}
+
+func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, userList []interface{}, accessType, name, namespace, host, path string) *eskip.Route {
+	r := &eskip.Route{
+		Id:     createRouteID("fg_eaccess", name, namespace, host, path, m.Method),
+		Path:   path,
+		Method: strings.ToUpper(m.Method),
+		Predicates: []*eskip.Predicate{
+			{
+				Name: predicates.HostAnyName,
+				Args: []interface{}{
+					host,
+					host + ":443",
+				},
+			},
+			{
+				Name: predicates.HeaderName,
+				Args: []interface{}{
+					"X-Forwarded-Proto",
+					"https",
+				},
+			},
+			{
+				Name: predicates.WeightName,
+				Args: []interface{}{
+					4, // TODO(sszuecs) needs checking
+				},
+			},
+		},
+		Filters: []*eskip.Filter{
+			{
+				// oauthTokeninfoAnyKV(realm", "/employees")
+				Name: filters.OAuthTokeninfoAnyKVName,
+				Args: []interface{}{
+					// TODO(sszuecs): should be configurable
+					"realm",
+					"/employees",
+				},
+			},
+			{
+				// oauthTokeninfoAllScope("uid")
+				Name: filters.OAuthTokeninfoAllScopeName,
+				Args: []interface{}{
+					// TODO(sszuecs): in the future should be configurable
+					"uid",
+				},
+			},
+			{
+				// unverifiedAuditLog("sub")
+				Name: filters.UnverifiedAuditLogName,
+				Args: []interface{}{
+					// TODO(sszuecs): in the future should be configurable
+					"sub",
+				},
+			},
+		},
+		BackendType: eskipBackend.Type,
+		Backend:     eskipBackend.backend,
+		LBAlgorithm: eskipBackend.lbAlgorithm,
+		LBEndpoints: eskipBackend.lbEndpoints,
+	}
+
+	// add optional ratelimit only default ratelimit
+	if m.Ratelimit != nil {
+		r.Filters = append(r.Filters,
+			&eskip.Filter{
+				//inlineContentIfStatus(429, "{\"title\": \"Rate limit exceeded\", \"detail\": \"See the retry-after header for how many seconds to wait before retrying.\", \"status\": 429}", "application/problem+json")
+				Name: filters.InlineContentIfStatusName,
+				Args: []interface{}{
+					429,
+					"{\"title\":\"Rate limit exceeded\",\"detail\":\"See the retry-after header for how many seconds to wait before retrying.\",\"status\":429}",
+					"application/problem+json",
+				},
+			},
+			&eskip.Filter{
+				// clusterClientRatelimit("foo_.._users", 30, "1m", "Authorization")
+				Name: filters.ClusterClientRatelimitName,
+				Args: []interface{}{
+					// TODO(sszuecs): maybe we want to add namespace here, too (assume people could use namespaces to separate prod/staging, this would otherwise count both)
+					fmt.Sprintf("%s_%s_%s",
+						name,
+						strings.Trim(nonWord.ReplaceAllString(path, "-"), "-"),
+						m.Method,
+					),
+					m.Ratelimit.DefaultRate,
+					m.Ratelimit.Period,
+					// optional header, TODO(sszuecs): maybe configurable in the future
+					"Authorization",
+				},
+			},
+		)
+	}
+
+	// add rest filters
+	r.Filters = append(r.Filters,
+		[]*eskip.Filter{
+			{
+				// flowId("reuse")
+				Name: filters.FlowIdName,
+				Args: []interface{}{
+					flowid.ReuseParameterValue,
+				},
+			},
+			{
+				// forwardToken("X-TokenInfo-Forward", "uid", "realm")
+				Name: filters.ForwardTokenName,
+				Args: []interface{}{
+					// TODO(sszuecs): in the future should be configurable
+					"X-TokenInfo-Forward",
+					"uid",
+					"realm",
+				},
+			},
+		}...)
+
+	// optional cors
+	if len(allowedOrigins) > 0 {
+		r.Filters = append(r.Filters,
+			&eskip.Filter{
+				// corsOrigin("https://foo.example.org", "https://bar.example.com")
+				Name: filters.CorsOriginName,
+				Args: allowedOrigins,
+			},
+		)
+	}
+
+	switch accessType {
+	case "allow_all":
+		// allow all
+		r.Predicates = append(r.Predicates, &eskip.Predicate{
+			Name: predicates.JWTPayloadAllKVName,
+			// TODO(sszuecs) should be configurable
+			Args: []interface{}{
+				"https://identity.zalando.com/realm",
+				"users",
+			},
+		})
+	case "allow_list":
+		r.Predicates = append(r.Predicates, &eskip.Predicate{
+			Name: predicates.JWTPayloadAnyKVName,
+			Args: userList,
+		})
+	case "deny_all":
+		r.Predicates = append(r.Predicates, &eskip.Predicate{
+			Name: predicates.JWTPayloadAllKVName,
+			// TODO(sszuecs) should be configurable
+			Args: []interface{}{
+				"https://identity.zalando.com/realm",
+				"users",
+			},
+		})
+		// no need to process filters, reset filters and set backend to shunt
+		r.Filters = []*eskip.Filter{
+			{
+				Name: filters.StatusName,
+				Args: []interface{}{403}, // TODO(sszuecs): status similar to fg-controller?
+			},
+			{
+				// TODO(sszuecs): what would the current FG-controller do to return a response message?
+				Name: filters.InlineContentName,
+				Args: []interface{}{
+					`{"title":"Gateway Rejected","status":403,"detail":"deny all employees"}`,
+				},
+			},
+		}
+		r.BackendType = eskip.ShuntBackend
+		r.Backend = ""
+		r.LBAlgorithm = ""
+		r.LBEndpoints = nil
+	}
+
+	return r
 }
 
 func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path string) *eskip.Route {
