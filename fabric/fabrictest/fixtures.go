@@ -130,20 +130,6 @@ func safeFileClose(t *testing.T, fd *os.File) {
 	}
 }
 
-func compileRegexps(s []string) ([]*regexp.Regexp, error) {
-	var r []*regexp.Regexp
-	for _, si := range s {
-		ri, err := regexp.Compile(si)
-		if err != nil {
-			return nil, err
-		}
-
-		r = append(r, ri)
-	}
-
-	return r, nil
-}
-
 func testFixture(t *testing.T, f fixtureSet) {
 	// TODO(sszuecs): cleanup
 	//println("f.name:", f.name, "f.resources:", f.resources, "f.api:", f.api, "f.eskip:", f.eskip)
