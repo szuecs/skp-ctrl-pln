@@ -3,7 +3,6 @@ package fabric
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -152,11 +151,7 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 
 							fts := make([]*FabricTarget, 0, len(h))
 							// sorted range through map to have stable results (test flapping)
-							keys := make([]string, 0, len(h))
-							for k := range h {
-								keys = append(keys, k)
-							}
-							sort.Strings(keys)
+							keys := getSortedKeys(h)
 							for _, uid := range keys {
 								v := h[uid]
 								rate, ok := v.(float64)
@@ -194,8 +189,7 @@ func (fps *FabricPaths) UnmarshalJSON(value []byte) error {
 								log.Fatalf("type assertion of staticVal '%v' to string was not ok", staticVal)
 								continue
 							}
-							var fr FabricResponse
-							json.Unmarshal([]byte(staticStr), &fr)
+							response.Body = staticStr
 
 						case "headers":
 							response.Headers = make(map[string]string)
@@ -452,6 +446,7 @@ type FabricResponse struct {
 	Title      string            `json:"title"`
 	StatusCode int               `json:"status"`
 	Headers    map[string]string `json:"headers"`
+	Body       string            `json:"body"`
 }
 
 type FabricRatelimit struct {
