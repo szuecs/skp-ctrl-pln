@@ -367,6 +367,20 @@ func allowedServicesToFilterArgs(allowedServices []string) []interface{} {
 	return filterArgs
 }
 
+func applyCompression(r *eskip.Route, fc *FabricCompression) {
+	if fc == nil {
+		return
+	}
+
+	r.Filters = append(r.Filters, &eskip.Filter{
+		Name: "compress",
+		Args: []interface{}{
+			fc.Factor,
+			fc.Encoding,
+		},
+	})
+}
+
 func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	routes := make([]*eskip.Route, 0)
 
@@ -446,6 +460,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				allowedServices := decideAllowedServices(fg.Spec.AllowList, m.AllowList)
 				if len(allowedServices) > 0 || allowedServices == nil {
 					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
+					applyCompression(r, fg.Spec.Compression)
 					routes = append(routes, r)
 
 					// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
