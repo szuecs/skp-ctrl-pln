@@ -1,4 +1,4 @@
-fg_404_default_simplest_multi_path_simplest_multi_path_example_org__: HostAny("simplest-multi-path.example.org", "simplest-multi-path.example.org:443") && PathSubtree("/")
+fg_404_default_simplest_multi_path_simplest_multi_path_example_org__: HostAny("simplest-multi-path.example.org", "simplest-multi-path.example.org:80", "simplest-multi-path.example.org:443") && PathSubtree("/")
   -> oauthTokeninfoAllScope("uid")
   -> unverifiedAuditLog("sub")
   -> status(404)

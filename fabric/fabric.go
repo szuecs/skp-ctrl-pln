@@ -487,6 +487,11 @@ func ValidateFabricResource(fg *Fabric) error {
 	if fg == nil || fg.Spec == nil || fg.Spec.Paths == nil || len(fg.Spec.Paths.Path) == 0 {
 		return fmt.Errorf("something nil: %v %v", fg, fg.Spec)
 	}
+
+	if fg.Spec.ExternalServiceProvider != nil && fg.Spec.Service != nil {
+		return fmt.Errorf("you cannot define services with the `x-fabric-service` key and also set external management using `x-external-service-provider`: %s/%s", fg.Metadata.Namespace, fg.Metadata.Name)
+	}
+
 	if esp := fg.Spec.ExternalServiceProvider; esp != nil {
 		if len(esp.Hosts) == 0 {
 			return fmt.Errorf("invalid x-external-service-provider number of hosts 0 for in fabric %s/%s", fg.Metadata.Namespace, fg.Metadata.Name)
