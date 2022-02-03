@@ -47,6 +47,35 @@ const (
 	skipperLoadBalancerAnnotationKey = "zalando.org/skipper-loadbalancer"
 )
 
+// TODO(sszuecs): these should be configurable by dataclient configuration
+var (
+	// filter args
+	checkEmployeeFilterArgs          = []interface{}{"realm", "/employees"}
+	checkServiceFilterArgs           = []interface{}{"realm", "/services"}
+	checkEmployeeOrServiceFilterArgs = append(checkServiceFilterArgs, checkEmployeeFilterArgs...)
+	checkCommonScopeFilterArgs       = []interface{}{"uid"}
+	logCommonKeyFilterArgs           = []interface{}{"sub"}
+	forwardTokenFilterArgs           = []interface{}{
+		"X-TokenInfo-Forward",
+		"uid",
+		"scope",
+		"realm",
+	}
+	forwardTokenEmployeeFilterArgs = []interface{}{
+		"X-TokenInfo-Forward",
+		"uid",
+		"realm",
+	}
+	clusterClientRatelimitHeader = "Authorization"
+
+	// predicate args
+	uidKey                      = "https://identity.zalando.com/managed-id"
+	checkUserRealmPredicateArgs = []interface{}{
+		"https://identity.zalando.com/realm",
+		"users",
+	}
+)
+
 var (
 	errResourceNotFound     = errors.New("resource not found")
 	errAPIServerURLNotFound = errors.New("kubernetes API server URL could not be constructed from env vars")
@@ -433,8 +462,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	if admins := fg.Spec.Admins; len(admins) != 0 {
 		adminArgs = make([]interface{}, 0, 2*len(admins))
 		for _, s := range admins {
-			// TODO(sszuecs): this should be configurable
-			adminArgs = append(adminArgs, "https://identity.zalando.com/managed-id", s)
+			adminArgs = append(adminArgs, uidKey, s)
 		}
 	}
 
@@ -637,8 +665,7 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 				usersAllowed := make([]interface{}, 0, 2*len(m.EmployeeAccess.UserList))
 				sort.Strings(m.EmployeeAccess.UserList)
 				for _, u := range m.EmployeeAccess.UserList {
-					// TODO(sszuecs) should be configurable
-					usersAllowed = append(usersAllowed, "https://identity.zalando.com/managed-id", u)
+					usersAllowed = append(usersAllowed, uidKey, u)
 				}
 				rea := createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, fp.Path, ridSuffix)
 				applyPath(rea, fp)
@@ -787,27 +814,17 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 			{
 				// oauthTokeninfoAnyKV(realm", "/employees")
 				Name: filters.OAuthTokeninfoAnyKVName,
-				Args: []interface{}{
-					// TODO(sszuecs): should be configurable
-					"realm",
-					"/employees",
-				},
+				Args: checkEmployeeFilterArgs,
 			},
 			{
 				// oauthTokeninfoAllScope("uid")
 				Name: filters.OAuthTokeninfoAllScopeName,
-				Args: []interface{}{
-					// TODO(sszuecs): in the future should be configurable
-					"uid",
-				},
+				Args: checkCommonScopeFilterArgs,
 			},
 			{
 				// unverifiedAuditLog("sub")
 				Name: filters.UnverifiedAuditLogName,
-				Args: []interface{}{
-					// TODO(sszuecs): in the future should be configurable
-					"sub",
-				},
+				Args: logCommonKeyFilterArgs,
 			},
 		},
 		BackendType: eskipBackend.Type,
@@ -840,8 +857,7 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 					),
 					m.Ratelimit.DefaultRate,
 					m.Ratelimit.Period,
-					// optional header, TODO(sszuecs): maybe configurable in the future
-					"Authorization",
+					clusterClientRatelimitHeader,
 				},
 			},
 		)
@@ -860,12 +876,7 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 			{
 				// forwardToken("X-TokenInfo-Forward", "uid", "realm")
 				Name: filters.ForwardTokenName,
-				Args: []interface{}{
-					// TODO(sszuecs): in the future should be configurable
-					"X-TokenInfo-Forward",
-					"uid",
-					"realm",
-				},
+				Args: forwardTokenEmployeeFilterArgs,
 			},
 		}...)
 
@@ -888,11 +899,7 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 		// allow all
 		r.Predicates = append(r.Predicates, &eskip.Predicate{
 			Name: predicates.JWTPayloadAllKVName,
-			// TODO(sszuecs) should be configurable
-			Args: []interface{}{
-				"https://identity.zalando.com/realm",
-				"users",
-			},
+			Args: checkUserRealmPredicateArgs,
 		})
 	case "allow_list":
 		r.Predicates = append(r.Predicates, &eskip.Predicate{
@@ -902,11 +909,7 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 	case "deny_all":
 		r.Predicates = append(r.Predicates, &eskip.Predicate{
 			Name: predicates.JWTPayloadAllKVName,
-			// TODO(sszuecs) should be configurable
-			Args: []interface{}{
-				"https://identity.zalando.com/realm",
-				"users",
-			},
+			Args: checkUserRealmPredicateArgs,
 		})
 		// no need to process filters, reset filters and set backend to shunt
 		r.Filters = []*eskip.Filter{
@@ -1038,13 +1041,7 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 			{
 				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
 				Name: filters.OAuthTokeninfoAnyKVName,
-				Args: []interface{}{
-					// TODO(sszuecs): should be configurable
-					"realm",
-					"/services",
-					"realm",
-					"/employees",
-				},
+				Args: checkEmployeeOrServiceFilterArgs,
 			},
 			{
 				// oauthTokeninfoAllScope("uid", "foo.write")
@@ -1073,10 +1070,7 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 		&eskip.Filter{
 			// unverifiedAuditLog("sub")
 			Name: filters.UnverifiedAuditLogName,
-			Args: []interface{}{
-				// TODO(sszuecs): in the future should be configurable
-				"sub",
-			},
+			Args: logCommonKeyFilterArgs,
 		},
 	)
 
@@ -1104,8 +1098,7 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 					),
 					m.Ratelimit.DefaultRate,
 					m.Ratelimit.Period,
-					// optional header, TODO(sszuecs): maybe configurable in the future
-					"Authorization",
+					clusterClientRatelimitHeader,
 				},
 			},
 		)
@@ -1124,13 +1117,7 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 			{
 				// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
 				Name: filters.ForwardTokenName,
-				Args: []interface{}{
-					// TODO(sszuecs): in the future should be configurable
-					"X-TokenInfo-Forward",
-					"uid",
-					"scope",
-					"realm",
-				},
+				Args: forwardTokenFilterArgs,
 			},
 		}...)
 
@@ -1161,10 +1148,7 @@ func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) [
 		rr.Predicates = append(rr.Predicates,
 			&eskip.Predicate{
 				Name: predicates.JWTPayloadAllKVName,
-				Args: []interface{}{
-					"sub", // TODO(sszuecs) maybe configurable in the future
-					rTarget.UID,
-				},
+				Args: append(logCommonKeyFilterArgs, rTarget.UID),
 			},
 		)
 
@@ -1208,11 +1192,7 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 			},
 			{
 				Name: predicates.JWTPayloadAllKVName,
-				Args: []interface{}{
-					// TODO(sszuecs): this should be configurable
-					"https://identity.zalando.com/realm",
-					"users",
-				},
+				Args: checkUserRealmPredicateArgs,
 			},
 			{
 				Name: predicates.JWTPayloadAnyKVName,
@@ -1221,15 +1201,10 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 		},
 		Filters: []*eskip.Filter{
 			{
+				// TODO(sszuecs): drop service realm for employees
 				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
 				Name: filters.OAuthTokeninfoAnyKVName,
-				Args: []interface{}{
-					// TODO(sszuecs): should be configurable
-					"realm",
-					"/services", // TODO(sszuecs): seems not to be required for admin routes
-					"realm",
-					"/employees",
-				},
+				Args: checkEmployeeOrServiceFilterArgs,
 			}, {
 				// enableAccessLog(2, 4, 5)
 				Name: filters.EnableAccessLogName,
@@ -1237,14 +1212,12 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 			}, {
 				// oauthTokeninfoAllScope("uid")
 				Name: filters.OAuthTokeninfoAllScopeName,
-				// TODO(sszuecs): in the future should be configurable, maybe defaultprivileges
-				Args: []interface{}{"uid"},
+				Args: checkCommonScopeFilterArgs,
 			}, {
-				// unverifiedAuditLog("https://identity.zalando.com/managed-id")
+				// unverifiedAuditLog(uidKey)
 				Name: filters.UnverifiedAuditLogName,
 				Args: []interface{}{
-					// TODO(sszuecs): in the future should be configurable
-					"https://identity.zalando.com/managed-id",
+					uidKey,
 				},
 			}, {
 				// flowId("reuse")
@@ -1253,13 +1226,7 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 			}, {
 				// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
 				Name: filters.ForwardTokenName,
-				Args: []interface{}{
-					// TODO(sszuecs): in the future should be configurable
-					"X-TokenInfo-Forward",
-					"uid",
-					"scope",
-					"realm",
-				},
+				Args: forwardTokenFilterArgs,
 			},
 		},
 	}
