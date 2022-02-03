@@ -18,6 +18,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	zv1 "github.com/szuecs/skp-ctrl-pln/fabric/stackset/v1"
 	"github.com/zalando/skipper/dataclients/kubernetes/definitions"
 	"github.com/zalando/skipper/eskip"
 	"github.com/zalando/skipper/filters"
@@ -25,6 +26,7 @@ import (
 	"github.com/zalando/skipper/loadbalancer"
 	"github.com/zalando/skipper/predicates"
 	"github.com/zalando/skipper/secrets"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -329,9 +331,51 @@ type servicePort struct {
 // signature copied from github.com/zalando/skipper/dataclients/kubernetes/clusterstate.go
 // dummy
 func getEndpointsByService(namespace, name, protocol string, servicePort *servicePort) []string {
-	return []string{
+	defaultEndpoints := []string{
 		"http://10.2.23.42:8080",
 		"http://10.2.5.4:8080",
+	}
+
+	if strings.HasPrefix(namespace, "traffic-") {
+		a := strings.Split(namespace, "-")
+		if len(a) != 2 {
+			return defaultEndpoints
+		}
+		w := a[1]
+		n, err := strconv.Atoi(w)
+		if err != nil {
+			return defaultEndpoints
+		}
+		eps := make([]string, 0, n)
+		for i := 0; i < n; i++ {
+			eps = append(eps, fmt.Sprintf("http://10.2.100.1%d:8088", i))
+		}
+		return eps
+	}
+	return defaultEndpoints
+}
+
+// dummy
+func getStacksetTrafficByName(namespace, name string) []*zv1.ActualTraffic {
+	return []*zv1.ActualTraffic{
+		{
+			StackName:   "s1",
+			ServiceName: "svc1",
+			ServicePort: intstr.FromString("ingress"),
+			Weight:      30,
+		},
+		{
+			StackName:   "s2",
+			ServiceName: "svc2",
+			ServicePort: intstr.FromInt(8080),
+			Weight:      30,
+		},
+		{
+			StackName:   "s3",
+			ServiceName: "svc3",
+			ServicePort: intstr.FromInt(8081),
+			Weight:      30,
+		},
 	}
 }
 
@@ -384,6 +428,17 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		lbAlgorithm = s
 	}
 
+	// x-fabric-admins preparation
+	var adminArgs []interface{}
+	if admins := fg.Spec.Admins; len(admins) != 0 {
+		adminArgs = make([]interface{}, 0, 2*len(admins))
+		for _, s := range admins {
+			// TODO(sszuecs): this should be configurable
+			adminArgs = append(adminArgs, "https://identity.zalando.com/managed-id", s)
+		}
+	}
+
+	// x-fabric-cors-support preparation
 	var allowedOrigins []interface{}
 	if fg.Spec.Cors != nil {
 		cors := fg.Spec.Cors
@@ -397,106 +452,65 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		}
 	}
 
+	// x-external-service-provider
+	if esp := fg.Spec.ExternalServiceProvider; esp != nil {
+		// TODO(sszuecs) use clusterclient instead of this dummy to fetch online resources, but here we only care that we get something in case of x-external-service-provider is set
+		trs := getStacksetTrafficByName(fg.Metadata.Namespace, fg.Metadata.Name)
+
+		weightsMap, noopCount := calculateTraffic(trs)
+
+		globalHostRouteDone := false
+		for i, traffic := range trs {
+			if traffic.Weight <= 0 {
+				continue
+			}
+
+			var trafficParam float64
+			if v, ok := weightsMap[traffic.ServiceName]; ok {
+				trafficParam = v
+			} else {
+				continue
+			}
+
+			ridSuffix := ""
+			if i >= 0 {
+				ridSuffix = "_" + strconv.Itoa(i)
+			}
+			println("trafficParam:", trafficParam, "noopCount:", noopCount, "ridSuffix:", ridSuffix)
+
+			// TODO(sszuecs): fix how to get endpoints
+			endpoints := getEndpointsByService(fg.Metadata.Namespace, traffic.ServiceName, "tcp", &servicePort{
+				Name: traffic.ServicePort.StrVal,
+				Port: traffic.ServicePort.IntValue(),
+			})
+			// TODO(sszuecs): maybe check that endpoints are not 0, but what if all of them are 0. Maybe better to shortcute the routes with `status(502) -> <shunt>` in this case.
+
+			for _, host := range esp.Hosts {
+				log.Debugf("x-external-service-provider host=%s svc=%s portName=%s, portNumber=%d", host, traffic.ServiceName, traffic.ServicePort.StrVal, traffic.ServicePort.IntValue())
+
+				routes = append(routes, createRoutes(fg, globalHostRouteDone, trafficParam, noopCount, ridSuffix, host, lbAlgorithm, endpoints, adminArgs, allowedOrigins)...)
+			}
+			globalHostRouteDone = true
+			noopCount--
+		}
+
+	}
+
+	// x-fabric-service
 	for _, fabsvc := range fg.Spec.Service {
 		host := fabsvc.Host
 
 		// TODO(sszuecs): cleanup this hack and think about ingress v1, do we want to change svc def in Fabric?
 		svcName, svcPortName, svcPortNumber := getKubeSvc(fabsvc)
 		// TODO(sszuecs): fix how to get endpoints
-		endpoints := getEndpointsByService(fg.Metadata.Namespace, fg.Metadata.Name, "tcp", &servicePort{
+		endpoints := getEndpointsByService(fg.Metadata.Namespace, svcName, "tcp", &servicePort{
 			Name: svcPortName,
 			Port: svcPortNumber,
 		})
 		log.Debugf("fabsvc host=%s svc=%s portName=%s, portNumber=%d", host, svcName, svcPortName, svcPortNumber)
 
-		be := ""
-		var bt eskip.BackendType = eskip.LBBackend
-		if len(endpoints) == 1 {
-			be = endpoints[0]
-			bt = eskip.NetworkBackend
-			endpoints = nil
-		}
-		eskipBackend := &eskipBackend{
-			Type:        bt,
-			backend:     be,
-			lbAlgorithm: lbAlgorithm,
-			lbEndpoints: endpoints,
-		}
+		routes = append(routes, createRoutes(fg, false, -1, -1, "", host, lbAlgorithm, endpoints, adminArgs, allowedOrigins)...)
 
-		defaultScopePrivileges := []interface{}{
-			"uid",
-		}
-
-		// 404 route per host
-		r404 := create404Route(create404RouteID(fg, host), "/", host, defaultScopePrivileges)
-		routes = append(routes, r404)
-
-		// reject plain http per host with 400, but not for internal routes
-		if !strings.HasSuffix(host, ".cluster.local") {
-			reject400 := createRejectRoute(createRejectRouteID(fg, host), "/", host, defaultScopePrivileges)
-			routes = append(routes, reject400)
-		}
-
-		for _, p := range fg.Spec.Paths.Path {
-			// TODO(sszuecs): cleanup
-			println("fg:", fg.Metadata.Namespace, fg.Metadata.Name, "with host", host, "with path:", p.Path, "methods:", len(p.Methods))
-			methods := make([]string, 0, len(p.Methods))
-			for _, m := range p.Methods {
-				methods = append(methods, m.Method)
-
-				// AllowList per method and global default
-				//     example: oauthTokeninfoAllScope("uid", "foo.write")
-				var privs []interface{}
-				privs = append(privs, defaultScopePrivileges...)
-				for _, priv := range m.Privileges {
-					privs = append(privs, priv)
-				}
-
-				allowedServices := decideAllowedServices(fg.Spec.AllowList, m.AllowList)
-				if len(allowedServices) > 0 || allowedServices == nil {
-					r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
-					applyCompression(r, fg.Spec.Compression)
-					applyStaticResponse(r, m.Response)
-					routes = append(routes, r)
-
-					// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
-					if m.Ratelimit != nil && len(m.Ratelimit.Target) > 0 {
-						routes = append(routes, createRatelimitRoutes(r, m, fg.Metadata.Name, p.Path)...)
-					}
-				}
-
-				// routes to support x-fabric-employee-access
-				if m.EmployeeAccess != nil {
-					usersAllowed := make([]interface{}, 0, 2*len(m.EmployeeAccess.UserList))
-					sort.Strings(m.EmployeeAccess.UserList)
-					for _, u := range m.EmployeeAccess.UserList {
-						// TODO(sszuecs) should be configurable
-						usersAllowed = append(usersAllowed, "https://identity.zalando.com/managed-id", u)
-					}
-					rea := createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path)
-					applyCompression(rea, fg.Spec.Compression)
-					applyStaticResponse(rea, m.Response)
-					routes = append(routes, rea)
-				}
-			}
-
-			if fg.Spec.Cors != nil && len(allowedOrigins) > 0 {
-				rID := createCorsRouteID(fg, host, p.Path)
-				corsMethods := strings.ToUpper(strings.Join(methods, ", "))
-				if !strings.Contains(corsMethods, "OPTIONS") {
-					corsMethods = corsMethods + ", OPTIONS"
-				}
-				corsAllowedHeaders := strings.Join(fg.Spec.Cors.AllowedHeaders, ", ")
-				routes = append(routes, createCorsRoute(rID, host, p.Path, corsMethods, corsAllowedHeaders, methods, allowedOrigins))
-			}
-			if len(fg.Spec.Admins) != 0 {
-				rID := createAdminRouteID(fg, host, p.Path)
-				// TODO(sszuecs): currently fabric would also do patchRouteWithStaticResponse in case we have it for the route, let's discuss if it makes sense
-				adminRoutes := createAdminRoutes(eskipBackend, rID, host, p.Path, methods, fg.Spec.Admins, allowedOrigins)
-				routes = append(routes, adminRoutes...)
-
-			}
-		}
 	}
 
 	// TODO(sszuecs): make sure errors are reported
@@ -511,6 +525,155 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	eskip.Fprint(fd, eskip.PrettyPrintInfo{Pretty: true, IndentStr: "\t"}, routes...)
 
 	return routes, nil
+}
+
+// calculateTraffic returns parameters that can be feed into Traffic()
+// predicates and the max count of True() predicates to be used and to
+// be decreased by the user of this function.
+func calculateTraffic(trs []*zv1.ActualTraffic) (map[string]float64, int) {
+	trafficMap := make(map[string]float64)
+	noopCount := 0
+	var weightsSum float64
+	for _, traffic := range trs {
+		if traffic.Weight <= 0 {
+			continue
+		}
+		trafficMap[traffic.ServiceName] = traffic.Weight
+		weightsSum += traffic.Weight
+		noopCount += 1
+	}
+	noopCount -= 2 // 1 route has no Traffic(), 1 route has only Traffic(), and rest needs True()s
+	if noopCount < 0 {
+		noopCount = 0
+	}
+
+	keys := make([]string, 0, len(trafficMap))
+	for k := range trafficMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// used to pass to createRoutes() as the arg in Traffic(arg).
+	restIterations := len(trafficMap) - 1
+	weightsMap := make(map[string]float64)
+	for _, k := range keys {
+		if restIterations == 0 {
+			weightsMap[k] = float64(-1) // last has no Traffic() or we loose traffic
+			break
+		}
+		v := trafficMap[k]
+		weightsMap[k] = v / weightsSum
+		weightsSum -= v
+		restIterations -= 1
+	}
+
+	return weightsMap, noopCount
+}
+
+func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, noopCount int, ridSuffix, host, lbAlgorithm string, endpoints []string, adminArgs, allowedOrigins []interface{}) []*eskip.Route {
+	routes := make([]*eskip.Route, 0)
+
+	be := ""
+	var bt eskip.BackendType = eskip.LBBackend
+	if len(endpoints) == 1 {
+		be = endpoints[0]
+		bt = eskip.NetworkBackend
+		endpoints = nil
+	}
+	eskipBackend := &eskipBackend{
+		Type:        bt,
+		backend:     be,
+		lbAlgorithm: lbAlgorithm,
+		lbEndpoints: endpoints,
+	}
+
+	defaultScopePrivileges := []interface{}{
+		"uid",
+	}
+
+	if !hostGlobalRouteDone {
+		// 404 route per host
+		r404 := create404Route(create404RouteID(fg, host), "/", host, defaultScopePrivileges)
+		routes = append(routes, r404)
+
+		// reject plain http per host with 400, but not for internal routes
+		if !strings.HasSuffix(host, ".cluster.local") {
+			reject400 := createRejectRoute(createRejectRouteID(fg, host), "/", host, defaultScopePrivileges)
+			routes = append(routes, reject400)
+		}
+	}
+
+	for _, p := range fg.Spec.Paths.Path {
+		methods := make([]string, 0, len(p.Methods))
+		for _, m := range p.Methods {
+			methods = append(methods, m.Method)
+
+			// AllowList per method and global default
+			//     example: oauthTokeninfoAllScope("uid", "foo.write")
+			var privs []interface{}
+			privs = append(privs, defaultScopePrivileges...)
+			for _, priv := range m.Privileges {
+				privs = append(privs, priv)
+			}
+
+			allowedServices := decideAllowedServices(fg.Spec.AllowList, m.AllowList)
+			if len(allowedServices) > 0 || allowedServices == nil {
+				r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path, ridSuffix)
+				applyCompression(r, fg.Spec.Compression)
+				applyStaticResponse(r, m.Response)
+				applyTraffic(r, trafficParam)
+				applyNoops(r, noopCount)
+				routes = append(routes, r)
+
+				// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
+				if m.Ratelimit != nil && len(m.Ratelimit.Target) > 0 {
+					routes = append(routes, createRatelimitRoutes(r, m, fg.Metadata.Name, p.Path)...)
+				}
+			}
+
+			// routes to support x-fabric-employee-access
+			if m.EmployeeAccess != nil {
+				usersAllowed := make([]interface{}, 0, 2*len(m.EmployeeAccess.UserList))
+				sort.Strings(m.EmployeeAccess.UserList)
+				for _, u := range m.EmployeeAccess.UserList {
+					// TODO(sszuecs) should be configurable
+					usersAllowed = append(usersAllowed, "https://identity.zalando.com/managed-id", u)
+				}
+				rea := createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path, ridSuffix)
+				applyCompression(rea, fg.Spec.Compression)
+				applyStaticResponse(rea, m.Response)
+				applyTraffic(rea, trafficParam)
+				applyNoops(rea, noopCount)
+				routes = append(routes, rea)
+			}
+
+			// routes to support x-fabric-admins
+			if len(adminArgs) != 0 {
+				// TODO(sszuecs): currently fabric would also do applyStaticResponse in case we have it for the route, let's discuss if it makes sense. https://github.com/zalando-incubator/fabric-gateway/pull/64 says it does make sense, because admins want to try that the static response is in place.
+				ra := createAdminRoute(eskipBackend, createAdminRouteID(fg, host, p.Path)+ridSuffix, host, p.Path, m.Method, adminArgs, allowedOrigins)
+				applyCompression(ra, fg.Spec.Compression)
+				applyStaticResponse(ra, m.Response)
+				applyTraffic(ra, trafficParam)
+				applyNoops(ra, noopCount)
+				routes = append(routes, ra)
+			}
+
+		}
+
+		if !hostGlobalRouteDone && fg.Spec.Cors != nil && len(allowedOrigins) > 0 {
+			rID := createCorsRouteID(fg, host, p.Path)
+			corsMethods := strings.ToUpper(strings.Join(methods, ", "))
+			if !strings.Contains(corsMethods, "OPTIONS") {
+				corsMethods = corsMethods + ", OPTIONS"
+			}
+			corsAllowedHeaders := strings.Join(fg.Spec.Cors.AllowedHeaders, ", ")
+			cr := createCorsRoute(rID, host, p.Path, corsMethods, corsAllowedHeaders, methods, allowedOrigins)
+			applyTraffic(cr, trafficParam)
+			applyNoops(cr, noopCount)
+			routes = append(routes, cr)
+		}
+	}
+	return routes
 }
 
 func stringToEmptyInterface(a []string) []interface{} {
@@ -534,6 +697,7 @@ func create404Route(rid, path, host string, privs []interface{}) *eskip.Route {
 				Name: predicates.HostAnyName,
 				Args: []interface{}{
 					host,
+					host + ":80",
 					host + ":443",
 				},
 			},
@@ -611,26 +775,12 @@ func createRejectRoute(rid, path, host string, privs []interface{}) *eskip.Route
 	}
 }
 
-func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, userList []interface{}, accessType, name, namespace, host, path string) *eskip.Route {
+func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, userList []interface{}, accessType, name, namespace, host, path, ridSuffix string) *eskip.Route {
 	r := &eskip.Route{
-		Id:     createRouteID("fg_eaccess", name, namespace, host, path, m.Method),
+		Id:     createRouteID("fg_eaccess", name, namespace, host, path, m.Method) + ridSuffix,
 		Path:   path,
 		Method: strings.ToUpper(m.Method),
 		Predicates: []*eskip.Predicate{
-			{
-				Name: predicates.HostAnyName,
-				Args: []interface{}{
-					host,
-					host + ":443",
-				},
-			},
-			{
-				Name: predicates.HeaderName,
-				Args: []interface{}{
-					"X-Forwarded-Proto",
-					"https",
-				},
-			},
 			{
 				Name: predicates.WeightName,
 				Args: []interface{}{
@@ -735,6 +885,8 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 		)
 	}
 
+	applyCommonPredicates(r, host)
+
 	// x-fabric-employee-access specifics
 	switch accessType {
 	case "allow_all":
@@ -819,26 +971,68 @@ func applyStaticResponse(r *eskip.Route, static *FabricResponse) {
 	}
 }
 
-func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path string) *eskip.Route {
+func applyNoops(r *eskip.Route, noopCount int) {
+	if noopCount < 1 {
+		return
+	}
+	for i := 0; i < noopCount; i++ {
+		r.Predicates = append(r.Predicates, &eskip.Predicate{
+			Name: predicates.TrueName,
+		})
+	}
+}
+
+func applyTraffic(r *eskip.Route, trafficParam float64) {
+	if trafficParam < 0 || trafficParam > 1 {
+		return
+	}
+	r.Predicates = append(r.Predicates, &eskip.Predicate{
+		Name: predicates.TrafficName,
+		Args: []interface{}{
+			trafficParam,
+		},
+	})
+}
+
+func applyCommonPredicates(r *eskip.Route, host string) {
+	if !strings.HasSuffix(host, ".cluster.local") {
+		r.Predicates = append(
+			[]*eskip.Predicate{
+				{
+					Name: predicates.HostAnyName,
+					Args: []interface{}{
+						host,
+						host + ":443",
+					},
+				},
+				{
+					Name: predicates.HeaderName,
+					Args: []interface{}{
+						"X-Forwarded-Proto",
+						"https",
+					},
+				},
+			}, r.Predicates...)
+	} else {
+		r.Predicates = append(
+			[]*eskip.Predicate{
+				{
+					Name: predicates.HostAnyName,
+					Args: []interface{}{
+						host,
+						host + ":80",
+					},
+				},
+			}, r.Predicates...)
+	}
+}
+
+func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path, ridSuffix string) *eskip.Route {
 	r := &eskip.Route{
-		Id:     createRouteID("fg", name, namespace, host, path, m.Method),
+		Id:     createRouteID("fg", name, namespace, host, path, m.Method) + ridSuffix,
 		Path:   path,
 		Method: strings.ToUpper(m.Method),
 		Predicates: []*eskip.Predicate{
-			{
-				Name: predicates.HostAnyName,
-				Args: []interface{}{
-					host,
-					host + ":443",
-				},
-			},
-			{
-				Name: predicates.HeaderName,
-				Args: []interface{}{
-					"X-Forwarded-Proto",
-					"https",
-				},
-			},
 			{
 				Name: predicates.WeightName,
 				Args: []interface{}{
@@ -957,6 +1151,8 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 		)
 	}
 
+	applyCommonPredicates(r, host)
+
 	return r
 }
 
@@ -1003,132 +1199,97 @@ func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) [
 
 }
 
-func createAdminRoutes(eskipBackend *eskipBackend, routeID, host, path string, methods, admins []string, allowedOrigins []interface{}) []*eskip.Route {
-	adminsArgs := make([]interface{}, 0, 2*len(admins))
-	for _, s := range admins {
-		// TODO(sszuecs): this should be configurable
-		adminsArgs = append(adminsArgs, "https://identity.zalando.com/managed-id", s)
+func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method string, adminsArgs, allowedOrigins []interface{}) *eskip.Route {
+	rr := &eskip.Route{
+		Id:          routeID + "_" + strings.ToLower(method),
+		BackendType: eskipBackend.Type,
+		Backend:     eskipBackend.backend, // in case we have only 1 endpoint we fallback to network backend
+		LBAlgorithm: eskipBackend.lbAlgorithm,
+		LBEndpoints: eskipBackend.lbEndpoints,
+		Path:        path,
+		Method:      strings.ToUpper(method),
+		Predicates: []*eskip.Predicate{
+			{
+				Name: predicates.WeightName,
+				Args: []interface{}{5},
+			},
+			{
+				Name: predicates.JWTPayloadAllKVName,
+				Args: []interface{}{
+					// TODO(sszuecs): this should be configurable
+					"https://identity.zalando.com/realm",
+					"users",
+				},
+			},
+			{
+				Name: predicates.JWTPayloadAnyKVName,
+				Args: adminsArgs,
+			},
+		},
+		Filters: []*eskip.Filter{
+			{
+				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
+				Name: filters.OAuthTokeninfoAnyKVName,
+				Args: []interface{}{
+					// TODO(sszuecs): should be configurable
+					"realm",
+					"/services", // TODO(sszuecs): seems not to be required for admin routes
+					"realm",
+					"/employees",
+				},
+			}, {
+				// enableAccessLog(2, 4, 5)
+				Name: filters.EnableAccessLogName,
+				Args: []interface{}{2, 4, 5},
+			}, {
+				// oauthTokeninfoAllScope("uid")
+				Name: filters.OAuthTokeninfoAllScopeName,
+				// TODO(sszuecs): in the future should be configurable, maybe defaultprivileges
+				Args: []interface{}{"uid"},
+			}, {
+				// unverifiedAuditLog("https://identity.zalando.com/managed-id")
+				Name: filters.UnverifiedAuditLogName,
+				Args: []interface{}{
+					// TODO(sszuecs): in the future should be configurable
+					"https://identity.zalando.com/managed-id",
+				},
+			}, {
+				// flowId("reuse")
+				Name: filters.FlowIdName,
+				Args: []interface{}{flowid.ReuseParameterValue},
+			}, {
+				// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
+				Name: filters.ForwardTokenName,
+				Args: []interface{}{
+					// TODO(sszuecs): in the future should be configurable
+					"X-TokenInfo-Forward",
+					"uid",
+					"scope",
+					"realm",
+				},
+			},
+		},
+	}
+	if len(allowedOrigins) > 0 {
+		rr.Filters = append(rr.Filters, &eskip.Filter{
+			// corsOrigin("https://example.org", "https://example.com")
+			Name: filters.CorsOriginName,
+			Args: allowedOrigins,
+		})
 	}
 
-	r := make([]*eskip.Route, 0, len(methods))
-	for _, m := range methods {
-		rr := &eskip.Route{
-			Id:          routeID + "_" + strings.ToLower(m),
-			BackendType: eskipBackend.Type,
-			Backend:     eskipBackend.backend, // in case we have only 1 endpoint we fallback to network backend
-			LBAlgorithm: eskipBackend.lbAlgorithm,
-			LBEndpoints: eskipBackend.lbEndpoints,
-			Path:        path,
-			Method:      strings.ToUpper(m),
-			Predicates: []*eskip.Predicate{
-				{
-					Name: predicates.HostAnyName,
-					Args: []interface{}{
-						host,
-						host + ":443",
-					},
-				},
-				{
-					Name: predicates.HeaderName,
-					Args: []interface{}{
-						"X-Forwarded-Proto",
-						"https",
-					},
-				},
-				{
-					Name: predicates.WeightName,
-					Args: []interface{}{5},
-				},
-				{
-					Name: predicates.JWTPayloadAllKVName,
-					Args: []interface{}{
-						// TODO(sszuecs): this should be configurable
-						"https://identity.zalando.com/realm",
-						"users",
-					},
-				},
-				{
-					Name: predicates.JWTPayloadAnyKVName,
-					Args: adminsArgs,
-				},
-			},
-			Filters: []*eskip.Filter{
-				{
-					// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-					Name: filters.OAuthTokeninfoAnyKVName,
-					Args: []interface{}{
-						// TODO(sszuecs): should be configurable
-						"realm",
-						"/services", // TODO(sszuecs): seems not to be required for admin routes
-						"realm",
-						"/employees",
-					},
-				}, {
-					// enableAccessLog(2, 4, 5)
-					Name: filters.EnableAccessLogName,
-					Args: []interface{}{2, 4, 5},
-				}, {
-					// oauthTokeninfoAllScope("uid")
-					Name: filters.OAuthTokeninfoAllScopeName,
-					// TODO(sszuecs): in the future should be configurable, maybe defaultprivileges
-					Args: []interface{}{"uid"},
-				}, {
-					// unverifiedAuditLog("https://identity.zalando.com/managed-id")
-					Name: filters.UnverifiedAuditLogName,
-					Args: []interface{}{
-						// TODO(sszuecs): in the future should be configurable
-						"https://identity.zalando.com/managed-id",
-					},
-				}, {
-					// flowId("reuse")
-					Name: filters.FlowIdName,
-					Args: []interface{}{flowid.ReuseParameterValue},
-				}, {
-					// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
-					Name: filters.ForwardTokenName,
-					Args: []interface{}{
-						// TODO(sszuecs): in the future should be configurable
-						"X-TokenInfo-Forward",
-						"uid",
-						"scope",
-						"realm",
-					},
-				},
-			},
-		}
-		if len(allowedOrigins) > 0 {
-			rr.Filters = append(rr.Filters, &eskip.Filter{
-				// corsOrigin("https://example.org", "https://example.com")
-				Name: filters.CorsOriginName,
-				Args: allowedOrigins,
-			})
-		}
-		r = append(r, rr)
-	}
-	return r
+	applyCommonPredicates(rr, host)
+
+	return rr
 }
 
 func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string, methods []string, allowedOrigins []interface{}) *eskip.Route {
-	return &eskip.Route{
+	r := &eskip.Route{
 		Id:          routeID,
 		BackendType: eskip.ShuntBackend,
 		Method:      "OPTIONS",
 		Path:        path,
 		Predicates: []*eskip.Predicate{
-			{
-				Name: predicates.HostAnyName,
-				Args: []interface{}{
-					host,
-					host + ":443",
-				},
-			},
-			{
-				Name: predicates.HeaderName,
-				Args: []interface{}{
-					"X-Forwarded-Proto",
-					"https",
-				},
-			},
 			{
 				Name: predicates.WeightName,
 				Args: []interface{}{3},
@@ -1158,6 +1319,9 @@ func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string
 			},
 		},
 	}
+
+	applyCommonPredicates(r, host)
+	return r
 }
 
 func (fdc *FabricDataClient) convert(fgs []*Fabric) ([]*eskip.Route, error) {

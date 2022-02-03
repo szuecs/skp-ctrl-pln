@@ -1,4 +1,4 @@
-fg_404_default_feature_compression_my_app_example_org__: HostAny("my-app.example.org", "my-app.example.org:443") && PathSubtree("/")
+fg_404_default_feature_compression_my_app_example_org__: HostAny("my-app.example.org", "my-app.example.org:80", "my-app.example.org:443") && PathSubtree("/")
 	-> oauthTokeninfoAllScope("uid")
 	-> unverifiedAuditLog("sub")
 	-> status(404)

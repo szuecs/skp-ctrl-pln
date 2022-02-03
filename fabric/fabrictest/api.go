@@ -26,6 +26,7 @@ type namespace struct {
 	services       []byte
 	ingresses      []byte
 	fabricgateways []byte
+	stacksets      []byte
 	routeGroups    []byte
 	endpoints      []byte
 }
@@ -159,6 +160,8 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b = ns.ingresses
 	case "fabricgateways":
 		b = ns.fabricgateways
+	case "stacksets":
+		b = ns.stacksets
 	case "routegroups":
 		b = ns.routeGroups
 	case "endpoints":

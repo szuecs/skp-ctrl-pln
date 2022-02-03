@@ -1,4 +1,4 @@
-fg_404_default_simplest_multi_method_diff_authnz_simplest_multi_method_diff_authnz_example_org__: HostAny("simplest-multi-method-diff-authnz.example.org", "simplest-multi-method-diff-authnz.example.org:443") && PathSubtree("/")
+fg_404_default_simplest_multi_method_diff_authnz_simplest_multi_method_diff_authnz_example_org__: HostAny("simplest-multi-method-diff-authnz.example.org", "simplest-multi-method-diff-authnz.example.org:80", "simplest-multi-method-diff-authnz.example.org:443") && PathSubtree("/")
   -> oauthTokeninfoAllScope("uid")
   -> unverifiedAuditLog("sub")
   -> status(404)
