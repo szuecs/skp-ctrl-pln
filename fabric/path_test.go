@@ -2,7 +2,7 @@ package fabric
 
 import "testing"
 
-func TestFabricPathToPredicate(t *testing.T) {
+func TestFabricPathStrToPredicate(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
 		fabricPath string
@@ -21,7 +21,7 @@ func TestFabricPathToPredicate(t *testing.T) {
 		{"bare double star wildcard", "/**", `PathSubtree("/")`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := fabricPathToPredicate(tc.fabricPath).String()
+			got := fabricPathStrToPredicate(tc.fabricPath).String()
 			want := tc.wantPred
 			if got != want {
 				t.Errorf(`%v != %v`, got, tc.wantPred)

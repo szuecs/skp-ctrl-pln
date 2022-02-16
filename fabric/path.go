@@ -26,18 +26,22 @@ var (
 	}
 )
 
-// fabricPathToPredicate takes a Fabric path string and transforms it an equivalent Skipper Path* predicate
-func fabricPathToPredicate(fp string) *eskip.Predicate {
-	if fp == "/**" {
+// fabricPathStrToPredicate takes a Fabric path string and transforms it an equivalent Skipper Path* predicate
+func fabricPathStrToPredicate(fps string) *eskip.Predicate {
+	if fps == "/**" {
 		return &eskip.Predicate{Name: predicates.PathSubtreeName, Args: []interface{}{"/"}}
 	}
 
 	for _, repl := range repls {
-		fp = repl.match.ReplaceAllString(fp, repl.repl)
+		fps = repl.match.ReplaceAllString(fps, repl.repl)
 	}
 
 	return &eskip.Predicate{
 		Name: predicates.PathName,
-		Args: []interface{}{fp},
+		Args: []interface{}{fps},
 	}
+}
+
+func applyPath(r *eskip.Route, fp *FabricPath) {
+	r.Predicates = append(r.Predicates, fabricPathStrToPredicate(fp.Path))
 }
