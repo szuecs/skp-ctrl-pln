@@ -593,12 +593,12 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 
 	if !hostGlobalRouteDone {
 		// 404 route per host
-		r404 := create404Route(create404RouteID(fg, host), "/", host, defaultScopePrivileges)
+		r404 := create404Route(create404RouteID(fg, host), host, defaultScopePrivileges)
 		routes = append(routes, r404)
 
 		// reject plain http per host with 400, but not for internal routes
 		if !strings.HasSuffix(host, ".cluster.local") {
-			reject400 := createRejectRoute(createRejectRouteID(fg, host), "/", host, defaultScopePrivileges)
+			reject400 := createRejectRoute(createRejectRouteID(fg, host), host, defaultScopePrivileges)
 			routes = append(routes, reject400)
 		}
 	}
@@ -676,22 +676,14 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 	return routes
 }
 
-func stringToEmptyInterface(a []string) []interface{} {
-	res := make([]interface{}, len(a))
-	for i := range a {
-		res[i] = a[i]
-	}
-	return res
-}
-
-func create404Route(rid, path, host string, privs []interface{}) *eskip.Route {
+func create404Route(rid, host string, privs []interface{}) *eskip.Route {
 	return &eskip.Route{
 		Id: rid,
 		Predicates: []*eskip.Predicate{
 			{
 				Name: predicates.PathSubtreeName,
 				Args: []interface{}{
-					path,
+					"/",
 				},
 			}, {
 				Name: predicates.HostAnyName,
@@ -727,14 +719,14 @@ func create404Route(rid, path, host string, privs []interface{}) *eskip.Route {
 	}
 }
 
-func createRejectRoute(rid, path, host string, privs []interface{}) *eskip.Route {
+func createRejectRoute(rid, host string, privs []interface{}) *eskip.Route {
 	return &eskip.Route{
 		Id: rid,
 		Predicates: []*eskip.Predicate{
 			{
 				Name: predicates.PathSubtreeName,
 				Args: []interface{}{
-					path,
+					"/",
 				},
 			}, {
 				Name: predicates.HostAnyName,

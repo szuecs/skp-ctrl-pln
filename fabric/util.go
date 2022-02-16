@@ -20,3 +20,11 @@ func getSortedKeysStr(h map[string]string) []string {
 	sort.Strings(keys)
 	return keys
 }
+
+func stringToEmptyInterface(a []string) []interface{} {
+	res := make([]interface{}, len(a))
+	for i := range a {
+		res[i] = a[i]
+	}
+	return res
+}
