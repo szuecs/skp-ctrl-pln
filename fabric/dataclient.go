@@ -593,19 +593,19 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 
 	if !hostGlobalRouteDone {
 		// 404 route per host
-		r404 := create404Route(create404RouteID(fg, host), "/", host, defaultScopePrivileges)
+		r404 := create404Route(create404RouteID(fg, host), host, defaultScopePrivileges)
 		routes = append(routes, r404)
 
 		// reject plain http per host with 400, but not for internal routes
 		if !strings.HasSuffix(host, ".cluster.local") {
-			reject400 := createRejectRoute(createRejectRouteID(fg, host), "/", host, defaultScopePrivileges)
+			reject400 := createRejectRoute(createRejectRouteID(fg, host), host, defaultScopePrivileges)
 			routes = append(routes, reject400)
 		}
 	}
 
-	for _, p := range fg.Spec.Paths.Path {
-		methods := make([]string, 0, len(p.Methods))
-		for _, m := range p.Methods {
+	for _, fp := range fg.Spec.Paths.Path {
+		methods := make([]string, 0, len(fp.Methods))
+		for _, m := range fp.Methods {
 			methods = append(methods, m.Method)
 
 			// AllowList per method and global default
@@ -618,7 +618,8 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 
 			allowedServices := decideAllowedServices(fg.Spec.AllowList, m.AllowList)
 			if len(allowedServices) > 0 || allowedServices == nil {
-				r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path, ridSuffix)
+				r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, fp.Path, ridSuffix)
+				applyPath(r, fp)
 				applyCompression(r, fg.Spec.Compression)
 				applyStaticResponse(r, m.Response)
 				applyTraffic(r, trafficParam)
@@ -627,7 +628,7 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 
 				// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
 				if m.Ratelimit != nil && len(m.Ratelimit.Target) > 0 {
-					routes = append(routes, createRatelimitRoutes(r, m, fg.Metadata.Name, p.Path)...)
+					routes = append(routes, createRatelimitRoutes(r, m, fg.Metadata.Name, fp.Path)...)
 				}
 			}
 
@@ -639,7 +640,8 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 					// TODO(sszuecs) should be configurable
 					usersAllowed = append(usersAllowed, "https://identity.zalando.com/managed-id", u)
 				}
-				rea := createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, p.Path, ridSuffix)
+				rea := createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, fp.Path, ridSuffix)
+				applyPath(rea, fp)
 				applyCompression(rea, fg.Spec.Compression)
 				applyStaticResponse(rea, m.Response)
 				applyTraffic(rea, trafficParam)
@@ -650,7 +652,8 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 			// routes to support x-fabric-admins
 			if len(adminArgs) != 0 {
 				// TODO(sszuecs): currently fabric would also do applyStaticResponse in case we have it for the route, let's discuss if it makes sense. https://github.com/zalando-incubator/fabric-gateway/pull/64 says it does make sense, because admins want to try that the static response is in place.
-				ra := createAdminRoute(eskipBackend, createAdminRouteID(fg, host, p.Path)+ridSuffix, host, p.Path, m.Method, adminArgs, allowedOrigins)
+				ra := createAdminRoute(eskipBackend, createAdminRouteID(fg, host, fp.Path)+ridSuffix, host, fp.Path, m.Method, adminArgs, allowedOrigins)
+				applyPath(ra, fp)
 				applyCompression(ra, fg.Spec.Compression)
 				applyStaticResponse(ra, m.Response)
 				applyTraffic(ra, trafficParam)
@@ -661,13 +664,14 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 		}
 
 		if !hostGlobalRouteDone && fg.Spec.Cors != nil && len(allowedOrigins) > 0 {
-			rID := createCorsRouteID(fg, host, p.Path)
+			rID := createCorsRouteID(fg, host, fp.Path)
 			corsMethods := strings.ToUpper(strings.Join(methods, ", "))
 			if !strings.Contains(corsMethods, "OPTIONS") {
 				corsMethods = corsMethods + ", OPTIONS"
 			}
 			corsAllowedHeaders := strings.Join(fg.Spec.Cors.AllowedHeaders, ", ")
-			cr := createCorsRoute(rID, host, p.Path, corsMethods, corsAllowedHeaders, methods, allowedOrigins)
+			cr := createCorsRoute(rID, host, fp.Path, corsMethods, corsAllowedHeaders, methods, allowedOrigins)
+			applyPath(cr, fp)
 			applyTraffic(cr, trafficParam)
 			applyNoops(cr, noopCount)
 			routes = append(routes, cr)
@@ -676,22 +680,14 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 	return routes
 }
 
-func stringToEmptyInterface(a []string) []interface{} {
-	res := make([]interface{}, len(a))
-	for i := range a {
-		res[i] = a[i]
-	}
-	return res
-}
-
-func create404Route(rid, path, host string, privs []interface{}) *eskip.Route {
+func create404Route(rid, host string, privs []interface{}) *eskip.Route {
 	return &eskip.Route{
 		Id: rid,
 		Predicates: []*eskip.Predicate{
 			{
 				Name: predicates.PathSubtreeName,
 				Args: []interface{}{
-					path,
+					"/",
 				},
 			}, {
 				Name: predicates.HostAnyName,
@@ -727,14 +723,14 @@ func create404Route(rid, path, host string, privs []interface{}) *eskip.Route {
 	}
 }
 
-func createRejectRoute(rid, path, host string, privs []interface{}) *eskip.Route {
+func createRejectRoute(rid, host string, privs []interface{}) *eskip.Route {
 	return &eskip.Route{
 		Id: rid,
 		Predicates: []*eskip.Predicate{
 			{
 				Name: predicates.PathSubtreeName,
 				Args: []interface{}{
-					path,
+					"/",
 				},
 			}, {
 				Name: predicates.HostAnyName,
@@ -778,7 +774,6 @@ func createRejectRoute(rid, path, host string, privs []interface{}) *eskip.Route
 func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, userList []interface{}, accessType, name, namespace, host, path, ridSuffix string) *eskip.Route {
 	r := &eskip.Route{
 		Id:     createRouteID("fg_eaccess", name, namespace, host, path, m.Method) + ridSuffix,
-		Path:   path,
 		Method: strings.ToUpper(m.Method),
 		Predicates: []*eskip.Predicate{
 			{
@@ -1030,7 +1025,6 @@ func applyCommonPredicates(r *eskip.Route, host string) {
 func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path, ridSuffix string) *eskip.Route {
 	r := &eskip.Route{
 		Id:     createRouteID("fg", name, namespace, host, path, m.Method) + ridSuffix,
-		Path:   path,
 		Method: strings.ToUpper(m.Method),
 		Predicates: []*eskip.Predicate{
 			{
@@ -1206,7 +1200,6 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 		Backend:     eskipBackend.backend, // in case we have only 1 endpoint we fallback to network backend
 		LBAlgorithm: eskipBackend.lbAlgorithm,
 		LBEndpoints: eskipBackend.lbEndpoints,
-		Path:        path,
 		Method:      strings.ToUpper(method),
 		Predicates: []*eskip.Predicate{
 			{
@@ -1288,7 +1281,6 @@ func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string
 		Id:          routeID,
 		BackendType: eskip.ShuntBackend,
 		Method:      "OPTIONS",
-		Path:        path,
 		Predicates: []*eskip.Predicate{
 			{
 				Name: predicates.WeightName,
