@@ -50,11 +50,16 @@ const (
 
 // TODO(sszuecs): these should be configurable by dataclient configuration
 var (
-	// filter args
+	// filter and args
+	checkEmployeeFilter              = filters.OAuthTokeninfoAnyKVName
 	checkEmployeeFilterArgs          = []interface{}{"realm", "/employees"}
+	checkServiceFilter               = filters.OAuthTokeninfoAnyKVName
 	checkServiceFilterArgs           = []interface{}{"realm", "/services"}
+	checkEmployeeOrServiceFilter     = filters.OAuthTokeninfoAnyKVName
 	checkEmployeeOrServiceFilterArgs = append(checkServiceFilterArgs, checkEmployeeFilterArgs...)
+	checkCommonScopeFilter           = filters.OAuthTokeninfoAllScopeName
 	checkCommonScopeFilterArgs       = []interface{}{"uid"}
+	logCommonKeyFilter               = filters.UnverifiedAuditLogName
 	logCommonKeyFilterArgs           = []interface{}{"sub"}
 	forwardTokenFilterArgs           = []interface{}{
 		"X-TokenInfo-Forward",
@@ -70,8 +75,13 @@ var (
 	clusterClientRatelimitHeader = "Authorization"
 
 	// predicate args
-	uidKey                      = "https://identity.zalando.com/managed-id"
-	checkUserRealmPredicateArgs = []interface{}{
+	uidKey                 = "https://identity.zalando.com/managed-id"
+	uidSelectorPredicate   = predicates.JWTPayloadAllKVName
+	appUidSelectorKeyArgs  = []interface{}{"sub"}
+	userUidSelectorKeyArgs = []interface{}{uidKey}
+	userListPredicate      = predicates.JWTPayloadAnyKVName
+	userRealmPredicate     = predicates.JWTPayloadAllKVName
+	userRealmPredicateArgs = []interface{}{
 		"https://identity.zalando.com/realm",
 		"users",
 	}
@@ -102,6 +112,29 @@ type FabricDataClient struct {
 type Options struct {
 	KubernetesURL       string
 	KubernetesInCluster bool
+
+	// filter + args
+	CheckEmployeeFilter              string
+	CheckEmployeeFilterArgs          []interface{}
+	CheckServiceFilter               string
+	CheckServiceFilterArgs           []interface{}
+	CheckEmployeeOrServiceFilter     string
+	CheckEmployeeOrServiceFilterArgs []interface{}
+	CheckCommonScopeFilter           string
+	CheckCommonScopeFilterArgs       []interface{}
+	LogCommonKeyFilter               string
+	LogCommonKeyFilterArgs           []interface{}
+
+	UidSelectorPredicate   string
+	AppUidSelectorKeyArgs  []interface{}
+	UserUidSelectorKeyArgs []interface{}
+
+	ClusterClientRatelimitHeader string
+	// predicate + args
+	UidKey                 string
+	UserListPredicate      string
+	UserRealmPredicate     string
+	UserRealmPredicateArgs []interface{}
 }
 
 type eskipBackend struct {
@@ -286,6 +319,70 @@ func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
 	return fcs, nil
 }
 
+func setPackageGlobalVars(o Options) {
+	if o.CheckEmployeeFilter != "" {
+		checkEmployeeFilter = o.CheckEmployeeFilter
+	}
+	if len(o.CheckEmployeeFilterArgs) > 0 {
+		checkEmployeeFilterArgs = o.CheckEmployeeFilterArgs
+	}
+
+	if o.CheckServiceFilter != "" {
+		checkServiceFilter = o.CheckServiceFilter
+	}
+	if len(o.CheckServiceFilterArgs) > 0 {
+		checkServiceFilterArgs = o.CheckServiceFilterArgs
+	}
+
+	if o.CheckEmployeeOrServiceFilter != "" {
+		checkEmployeeOrServiceFilter = o.CheckEmployeeOrServiceFilter
+	}
+	if len(o.CheckEmployeeOrServiceFilterArgs) > 0 {
+		checkEmployeeOrServiceFilterArgs = o.CheckEmployeeOrServiceFilterArgs
+	}
+
+	if o.CheckCommonScopeFilter != "" {
+		checkCommonScopeFilter = o.CheckCommonScopeFilter
+	}
+	if len(o.LogCommonKeyFilter) > 0 {
+		logCommonKeyFilter = o.LogCommonKeyFilter
+	}
+
+	if o.LogCommonKeyFilter != "" {
+		logCommonKeyFilter = o.LogCommonKeyFilter
+	}
+	if len(o.LogCommonKeyFilterArgs) > 0 {
+		logCommonKeyFilterArgs = o.LogCommonKeyFilterArgs
+	}
+
+	if o.UidSelectorPredicate != "" {
+		uidSelectorPredicate = o.UidSelectorPredicate
+	}
+	if len(o.AppUidSelectorKeyArgs) > 0 {
+		appUidSelectorKeyArgs = o.AppUidSelectorKeyArgs
+	}
+	if len(o.UserUidSelectorKeyArgs) > 0 {
+		userUidSelectorKeyArgs = o.UserUidSelectorKeyArgs
+	}
+
+	if o.ClusterClientRatelimitHeader != "" {
+		clusterClientRatelimitHeader = o.ClusterClientRatelimitHeader
+	}
+
+	if o.UidKey != "" {
+		uidKey = o.UidKey
+	}
+	if o.UserListPredicate != "" {
+		userListPredicate = o.UserListPredicate
+	}
+	if o.UserRealmPredicate != "" {
+		userRealmPredicate = o.UserRealmPredicate
+	}
+	if len(o.UserRealmPredicateArgs) > 0 {
+		userRealmPredicateArgs = o.UserRealmPredicateArgs
+	}
+}
+
 func NewFabricDataClient(o Options) (*FabricDataClient, error) {
 	quit := make(chan struct{})
 
@@ -298,6 +395,8 @@ func NewFabricDataClient(o Options) (*FabricDataClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	setPackageGlobalVars(o)
 
 	return &FabricDataClient{
 		quit:          quit,
@@ -523,7 +622,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				Name: traffic.ServicePort.StrVal,
 				Port: traffic.ServicePort.IntValue(),
 			})
-			// TODO(sszuecs): maybe check that endpoints are not 0, but what if all of them are 0. Maybe better to shortcute the routes with `status(502) -> <shunt>` in this case.
+			// TODO(sszuecs): maybe check that endpoints are not 0, but what if all of them are 0. Maybe better to shortcut the routes with `status(502) -> <shunt>` in this case.
 
 			for _, host := range esp.Hosts {
 				log.Debugf("x-external-service-provider host=%s svc=%s portName=%s, portNumber=%d", host, traffic.ServiceName, traffic.ServicePort.StrVal, traffic.ServicePort.IntValue())
@@ -554,14 +653,14 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	}
 
 	// TODO(sszuecs): make sure errors are reported
-	// fmt.Errorf("failed to convert fabricgateway %s/%s: %v", fg.Metadata.Namespace, fg.Metadata.Name, err)
+	// Do we have errors here that we need to report and skip routes creation?
 
+	// TODO(sszuecs): clean this up
 	fd, err := os.Create("/tmp/foo.eskip")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to convert fabricgateway %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
 	}
 	defer fd.Close()
-
 	eskip.Fprint(fd, eskip.PrettyPrintInfo{Pretty: true, IndentStr: "\t"}, routes...)
 
 	return routes, nil
@@ -740,13 +839,11 @@ func create404Route(rid, host string, privs []interface{}) *eskip.Route {
 		},
 		Filters: []*eskip.Filter{
 			{
-				Name: filters.OAuthTokeninfoAllScopeName,
+				Name: checkCommonScopeFilter,
 				Args: privs,
 			}, {
-				Name: filters.UnverifiedAuditLogName,
-				Args: []interface{}{
-					"sub",
-				},
+				Name: logCommonKeyFilter,
+				Args: logCommonKeyFilterArgs,
 			}, {
 				Name: filters.StatusName,
 				Args: []interface{}{
@@ -788,13 +885,11 @@ func createRejectRoute(rid, host string, privs []interface{}) *eskip.Route {
 		},
 		Filters: []*eskip.Filter{
 			{
-				Name: filters.OAuthTokeninfoAllScopeName,
+				Name: checkCommonScopeFilter,
 				Args: privs,
 			}, {
-				Name: filters.UnverifiedAuditLogName,
-				Args: []interface{}{
-					"sub",
-				},
+				Name: logCommonKeyFilter,
+				Args: logCommonKeyFilterArgs,
 			}, {
 				Name: filters.StatusName,
 				Args: []interface{}{
@@ -826,17 +921,17 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 		Filters: []*eskip.Filter{
 			{
 				// oauthTokeninfoAnyKV(realm", "/employees")
-				Name: filters.OAuthTokeninfoAnyKVName,
+				Name: checkEmployeeFilter,
 				Args: checkEmployeeFilterArgs,
 			},
 			{
 				// oauthTokeninfoAllScope("uid")
-				Name: filters.OAuthTokeninfoAllScopeName,
+				Name: checkCommonScopeFilter,
 				Args: checkCommonScopeFilterArgs,
 			},
 			{
 				// unverifiedAuditLog("sub")
-				Name: filters.UnverifiedAuditLogName,
+				Name: logCommonKeyFilter,
 				Args: logCommonKeyFilterArgs,
 			},
 		},
@@ -911,18 +1006,18 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 	case "allow_all":
 		// allow all
 		r.Predicates = append(r.Predicates, &eskip.Predicate{
-			Name: predicates.JWTPayloadAllKVName,
-			Args: checkUserRealmPredicateArgs,
+			Name: userRealmPredicate,
+			Args: userRealmPredicateArgs,
 		})
 	case "allow_list":
 		r.Predicates = append(r.Predicates, &eskip.Predicate{
-			Name: predicates.JWTPayloadAnyKVName,
+			Name: userListPredicate,
 			Args: userList,
 		})
 	case "deny_all":
 		r.Predicates = append(r.Predicates, &eskip.Predicate{
-			Name: predicates.JWTPayloadAllKVName,
-			Args: checkUserRealmPredicateArgs,
+			Name: userRealmPredicate,
+			Args: userRealmPredicateArgs,
 		})
 		// no need to process filters, reset filters and set backend to shunt
 		r.Filters = []*eskip.Filter{
@@ -1053,12 +1148,12 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 		Filters: []*eskip.Filter{
 			{
 				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-				Name: filters.OAuthTokeninfoAnyKVName,
+				Name: checkEmployeeOrServiceFilter,
 				Args: checkEmployeeOrServiceFilterArgs,
 			},
 			{
 				// oauthTokeninfoAllScope("uid", "foo.write")
-				Name: filters.OAuthTokeninfoAllScopeName,
+				Name: checkCommonScopeFilter,
 				Args: privs,
 			},
 		},
@@ -1073,7 +1168,7 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 		// oauthTokeninfoAnyKV("sub", "my-app1", "sub", "my-app2")
 		r.Filters = append(r.Filters,
 			&eskip.Filter{
-				Name: filters.OAuthTokeninfoAnyKVName,
+				Name: checkServiceFilter,
 				Args: allowedServices,
 			},
 		)
@@ -1082,7 +1177,7 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 	r.Filters = append(r.Filters,
 		&eskip.Filter{
 			// unverifiedAuditLog("sub")
-			Name: filters.UnverifiedAuditLogName,
+			Name: logCommonKeyFilter,
 			Args: logCommonKeyFilterArgs,
 		},
 	)
@@ -1160,8 +1255,8 @@ func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) [
 		// add predicate to match client application
 		rr.Predicates = append(rr.Predicates,
 			&eskip.Predicate{
-				Name: predicates.JWTPayloadAllKVName,
-				Args: append(logCommonKeyFilterArgs, rTarget.UID),
+				Name: uidSelectorPredicate,
+				Args: append(appUidSelectorKeyArgs, rTarget.UID),
 			},
 		)
 
@@ -1204,11 +1299,11 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 				Args: []interface{}{5},
 			},
 			{
-				Name: predicates.JWTPayloadAllKVName,
-				Args: checkUserRealmPredicateArgs,
+				Name: userRealmPredicate,
+				Args: userRealmPredicateArgs,
 			},
 			{
-				Name: predicates.JWTPayloadAnyKVName,
+				Name: userListPredicate,
 				Args: adminsArgs,
 			},
 		},
@@ -1216,7 +1311,7 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 			{
 				// TODO(sszuecs): drop service realm for employees
 				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-				Name: filters.OAuthTokeninfoAnyKVName,
+				Name: checkEmployeeOrServiceFilter,
 				Args: checkEmployeeOrServiceFilterArgs,
 			}, {
 				// enableAccessLog(2, 4, 5)
@@ -1224,14 +1319,12 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 				Args: []interface{}{2, 4, 5},
 			}, {
 				// oauthTokeninfoAllScope("uid")
-				Name: filters.OAuthTokeninfoAllScopeName,
+				Name: checkCommonScopeFilter,
 				Args: checkCommonScopeFilterArgs,
 			}, {
 				// unverifiedAuditLog(uidKey)
-				Name: filters.UnverifiedAuditLogName,
-				Args: []interface{}{
-					uidKey,
-				},
+				Name: logCommonKeyFilter,
+				Args: userUidSelectorKeyArgs,
 			}, {
 				// flowId("reuse")
 				Name: filters.FlowIdName,
