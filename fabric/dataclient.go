@@ -44,7 +44,8 @@ const (
 	serviceAccountTokenKey     = "token"
 	serviceAccountRootCAKey    = "ca.crt"
 
-	skipperLoadBalancerAnnotationKey = "zalando.org/skipper-loadbalancer"
+	skipperLoadBalancerAnnotationKey  = "zalando.org/skipper-loadbalancer"
+	fabricAdditionalFiltersAnnotation = "fabric/additional-filters"
 )
 
 // TODO(sszuecs): these should be configurable by dataclient configuration
@@ -449,6 +450,17 @@ func applyCompression(r *eskip.Route, fc *FabricCompression) {
 	})
 }
 
+func applyAnnotation(r *eskip.Route, m *Metadata) {
+	if s, ok := m.Annotations[fabricAdditionalFiltersAnnotation]; ok {
+		fs, err := eskip.ParseFilters(s)
+		if err != nil {
+			log.Errorf("Failed to parse filter %s/%s value '%s': %v", m.Namespace, m.Name, s, err)
+			return
+		}
+		r.Filters = append(r.Filters, fs...)
+	}
+}
+
 func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	routes := make([]*eskip.Route, 0)
 
@@ -652,6 +664,7 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 				applyStaticResponse(r, m.Response)
 				applyTraffic(r, trafficParam)
 				applyNoops(r, noopCount)
+				applyAnnotation(r, fg.Metadata)
 				routes = append(routes, r)
 
 				// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
