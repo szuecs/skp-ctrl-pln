@@ -182,6 +182,23 @@ func testFixture(t *testing.T, f fixtureSet) {
 
 	o := fabric.Options{
 		KubernetesURL: s.URL,
+
+		// keep everything defaults
+		// filters
+		CheckEmployeeFilter:          "",
+		CheckServiceFilter:           "",
+		CheckEmployeeOrServiceFilter: "",
+		CheckCommonScopeFilter:       "",
+		LogServiceFilter:             "",
+		LogUserFilter:                "",
+		ForwardTokenServiceFilter:    "",
+		ForwardTokenEmployeeFilter:   "",
+		FlowIDFilter:                 "",
+		// rest
+		ClusterClientRatelimitHeader: "",
+		UidKey:                       "",
+		UserListPredicate:            "",
+		UserRealmPredicate:           "",
 	}
 	c, err := fabric.NewFabricDataClient(o)
 	if err != nil {
