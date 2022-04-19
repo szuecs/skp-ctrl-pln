@@ -46,34 +46,73 @@ const (
 
 	skipperLoadBalancerAnnotationKey  = "zalando.org/skipper-loadbalancer"
 	fabricAdditionalFiltersAnnotation = "fabric/additional-filters"
+
+	defaultClusterClientRatelimitHeader = "Authorization"
+	defaultUidKey                       = "https://identity.zalando.com/managed-id"
+	defaultUserListPredicateName        = predicates.JWTPayloadAnyKVName
+	defaultUserRealmPredicateName       = predicates.JWTPayloadAnyKVName
+	defaultCheckCommonScopeFilterName   = filters.OAuthTokeninfoAllScopeName
+	defaultCheckServiceFilterName       = filters.OAuthTokeninfoAnyKVName
 )
 
-// TODO(sszuecs): these should be configurable by dataclient configuration
 var (
-	// filter args
-	checkEmployeeFilterArgs          = []interface{}{"realm", "/employees"}
-	checkServiceFilterArgs           = []interface{}{"realm", "/services"}
-	checkEmployeeOrServiceFilterArgs = append(checkServiceFilterArgs, checkEmployeeFilterArgs...)
-	checkCommonScopeFilterArgs       = []interface{}{"uid"}
-	logCommonKeyFilterArgs           = []interface{}{"sub"}
-	forwardTokenFilterArgs           = []interface{}{
-		"X-TokenInfo-Forward",
-		"uid",
-		"scope",
-		"realm",
+	defaultCheckEmployeeFilter = eskip.Filter{
+		Name: filters.OAuthTokeninfoAnyKVName,
+		Args: []interface{}{"realm", "/employees"},
 	}
-	forwardTokenEmployeeFilterArgs = []interface{}{
-		"X-TokenInfo-Forward",
-		"uid",
-		"realm",
+	defaultCheckServiceFilter = eskip.Filter{
+		Name: filters.OAuthTokeninfoAnyKVName,
+		Args: []interface{}{"realm", "/services"},
 	}
-	clusterClientRatelimitHeader = "Authorization"
+	defaultCheckEmployeeOrServiceFilter = eskip.Filter{
+		Name: filters.OAuthTokeninfoAnyKVName,
+		Args: []interface{}{"realm", "/services", "realm", "/employees"},
+	}
+	defaultCheckCommonScopeFilter = eskip.Filter{
+		Name: filters.OAuthTokeninfoAllScopeName,
+		Args: []interface{}{"uid"},
+	}
+	defaultLogServiceFilter = eskip.Filter{
+		Name: filters.UnverifiedAuditLogName,
+		Args: []interface{}{"sub"},
+	}
+	defaultLogUserFilter = eskip.Filter{
+		Name: filters.UnverifiedAuditLogName,
+		Args: []interface{}{defaultUidKey},
+	}
+	defaultForwardTokenServiceFilter = eskip.Filter{
+		Name: filters.ForwardTokenName,
+		Args: []interface{}{
+			"X-TokenInfo-Forward",
+			"uid",
+			"scope",
+			"realm",
+		},
+	}
+	defaultForwardTokenEmployeeFilter = eskip.Filter{
+		Name: filters.ForwardTokenName,
+		Args: []interface{}{
+			"X-TokenInfo-Forward",
+			"uid",
+			"realm",
+		},
+	}
+	// flowId("reuse")
+	defaultFlowIDFilter = eskip.Filter{
+		Name: filters.FlowIdName,
+		Args: []interface{}{
+			flowid.ReuseParameterValue,
+		},
+	}
 
-	// predicate args
-	uidKey                      = "https://identity.zalando.com/managed-id"
-	checkUserRealmPredicateArgs = []interface{}{
+	defaultUserRealmPredicateArgs = []interface{}{
 		"https://identity.zalando.com/realm",
 		"users",
+	}
+	// JWTPayloadAnyKV()
+	defaultUserRealmPredicate = eskip.Predicate{
+		Name: defaultUserListPredicateName,
+		Args: defaultUserRealmPredicateArgs,
 	}
 )
 
@@ -95,13 +134,64 @@ type clusterClient struct {
 }
 
 type FabricDataClient struct {
-	quit          chan struct{}
 	ClusterClient *clusterClient
+
+	quit chan struct{}
+
+	clusterClientRatelimitHeader string
+	uidKey                       string
+	userListPredicateName        string
+	userRealmPredicateName       string
+	checkCommonScopeFilterName   string
+	checkServiceFilterName       string
+
+	// filters
+	checkEmployeeFilter          []*eskip.Filter
+	checkServiceFilter           []*eskip.Filter
+	checkEmployeeOrServiceFilter []*eskip.Filter
+	checkCommonScopeFilter       []*eskip.Filter
+	logServiceFilter             []*eskip.Filter
+	logUserFilter                []*eskip.Filter
+	forwardTokenServiceFilter    []*eskip.Filter
+	forwardTokenEmployeeFilter   []*eskip.Filter
+	flowIDFilter                 []*eskip.Filter
+
+	// predicates
+	userRealmPredicates                 []*eskip.Predicate
+	serviceUidSelectorPredicateTemplate *eskip.Predicate
 }
 
 type Options struct {
 	KubernetesURL       string
 	KubernetesInCluster bool
+
+	// filter + args
+	CheckEmployeeFilter          string
+	CheckServiceFilter           string
+	CheckEmployeeOrServiceFilter string
+	CheckCommonScopeFilter       string
+	ForwardTokenServiceFilter    string
+	ForwardTokenEmployeeFilter   string
+	LogServiceFilter             string
+	LogUserFilter                string
+	FlowIDFilter                 string
+
+	// ClusterClientRatelimitHeader is used for identifying a
+	// client in a given request
+	ClusterClientRatelimitHeader string
+	// UidKey is used in x-fabric-admins and
+	// x-fabric-employee-access to identify the user Claim to
+	// match the value against an allow list and to identify the
+	// user in the LogUserFilter.
+	UidKey string
+	// UserListPredicate is the predicate name used in
+	// x-fabric-admins and x-fabric-employee-access to identify a
+	// user in the "allow_list"
+	UserListPredicate string
+	// UserRealmPredicate is the predicate name used in
+	// x-fabric-employee-access to identify "allow_all" or
+	// "deny_all" and in x-fabric-admins if it's a user
+	UserRealmPredicate string
 }
 
 type eskipBackend struct {
@@ -286,6 +376,20 @@ func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
 	return fcs, nil
 }
 
+func configureFilters(s string, defaultFilter *eskip.Filter) []*eskip.Filter {
+	if s == "" {
+		log.Debugf("configureFilters fallback to default %s", defaultFilter)
+		return []*eskip.Filter{defaultFilter}
+	}
+	target, err := eskip.ParseFilters(s)
+	if err != nil {
+		log.Errorf("Failed to parse filter (fallback to default) string '%s': %v", s, err)
+		return []*eskip.Filter{defaultFilter}
+	}
+	log.Infof("%d target Filters set: %s", len(target), s)
+	return target
+}
+
 func NewFabricDataClient(o Options) (*FabricDataClient, error) {
 	quit := make(chan struct{})
 
@@ -299,10 +403,55 @@ func NewFabricDataClient(o Options) (*FabricDataClient, error) {
 		return nil, err
 	}
 
-	return &FabricDataClient{
+	dc := &FabricDataClient{
 		quit:          quit,
 		ClusterClient: clusterClient,
-	}, nil
+
+		clusterClientRatelimitHeader: defaultClusterClientRatelimitHeader,
+		uidKey:                       defaultUidKey,
+		userListPredicateName:        defaultUserListPredicateName,
+		userRealmPredicateName:       defaultUserRealmPredicateName,
+		checkCommonScopeFilterName:   defaultCheckCommonScopeFilterName,
+		checkServiceFilterName:       defaultCheckServiceFilterName,
+		userRealmPredicates:          []*eskip.Predicate{&defaultUserRealmPredicate},
+
+		// TODO(sszuecs): requires config via Options
+		// this needs to be dynamic, because of it's the selector for ratelimit target set for specific apps
+		serviceUidSelectorPredicateTemplate: &eskip.Predicate{
+			Name: predicates.JWTPayloadAllKVName,
+			Args: []interface{}{"sub"},
+		},
+	}
+	dc.checkEmployeeFilter = configureFilters(o.CheckEmployeeFilter, &defaultCheckEmployeeFilter)
+	dc.checkServiceFilter = configureFilters(o.CheckServiceFilter, &defaultCheckServiceFilter)
+	dc.checkEmployeeOrServiceFilter = configureFilters(o.CheckEmployeeOrServiceFilter, &defaultCheckEmployeeOrServiceFilter)
+	dc.checkCommonScopeFilter = configureFilters(o.CheckCommonScopeFilter, &defaultCheckCommonScopeFilter)
+	dc.logServiceFilter = configureFilters(o.LogServiceFilter, &defaultLogServiceFilter)
+	dc.logUserFilter = configureFilters(o.LogUserFilter, &defaultLogUserFilter)
+	dc.forwardTokenServiceFilter = configureFilters(o.ForwardTokenServiceFilter, &defaultForwardTokenServiceFilter)
+	dc.forwardTokenEmployeeFilter = configureFilters(o.ForwardTokenEmployeeFilter, &defaultForwardTokenEmployeeFilter)
+	dc.flowIDFilter = configureFilters(o.FlowIDFilter, &defaultFlowIDFilter)
+
+	if o.ClusterClientRatelimitHeader != "" {
+		dc.clusterClientRatelimitHeader = o.ClusterClientRatelimitHeader
+	}
+	if o.UidKey != "" {
+		dc.uidKey = o.UidKey
+	}
+	if o.UserListPredicate != "" {
+		dc.userListPredicateName = o.UserListPredicate
+	}
+	if o.UserRealmPredicate != "" {
+		dc.userRealmPredicates, err = eskip.ParsePredicates(o.UserRealmPredicate)
+		if err != nil {
+			log.Errorf("Parse '%s' failed: %v", o.UserRealmPredicate, err)
+			return nil, fmt.Errorf("parse '%s' failed: %w", o.UserRealmPredicate, err)
+		}
+	}
+	log.Infof("DC: %+v", dc)
+	log.Infof("filter: %d", len(dc.flowIDFilter))
+
+	return dc, nil
 }
 
 func (fdc *FabricDataClient) Close() {
@@ -461,7 +610,7 @@ func applyAnnotation(r *eskip.Route, m *Metadata) {
 	}
 }
 
-func convertOne(fg *Fabric) ([]*eskip.Route, error) {
+func (fdc *FabricDataClient) convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	routes := make([]*eskip.Route, 0)
 
 	lbAlgorithm := loadbalancer.RoundRobin.String()
@@ -474,7 +623,7 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 	if admins := fg.Spec.Admins; len(admins) != 0 {
 		adminArgs = make([]interface{}, 0, 2*len(admins))
 		for _, s := range admins {
-			adminArgs = append(adminArgs, uidKey, s)
+			adminArgs = append(adminArgs, defaultUidKey, s)
 		}
 	}
 
@@ -523,12 +672,12 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 				Name: traffic.ServicePort.StrVal,
 				Port: traffic.ServicePort.IntValue(),
 			})
-			// TODO(sszuecs): maybe check that endpoints are not 0, but what if all of them are 0. Maybe better to shortcute the routes with `status(502) -> <shunt>` in this case.
+			// TODO(sszuecs): maybe check that endpoints are not 0, but what if all of them are 0. Maybe better to shortcut the routes with `status(502) -> <shunt>` in this case.
 
 			for _, host := range esp.Hosts {
 				log.Debugf("x-external-service-provider host=%s svc=%s portName=%s, portNumber=%d", host, traffic.ServiceName, traffic.ServicePort.StrVal, traffic.ServicePort.IntValue())
 
-				routes = append(routes, createRoutes(fg, globalHostRouteDone, trafficParam, noopCount, ridSuffix, host, lbAlgorithm, endpoints, adminArgs, allowedOrigins)...)
+				routes = append(routes, fdc.createRoutes(fg, globalHostRouteDone, trafficParam, noopCount, ridSuffix, host, lbAlgorithm, endpoints, adminArgs, allowedOrigins)...)
 			}
 			globalHostRouteDone = true
 			noopCount--
@@ -549,19 +698,19 @@ func convertOne(fg *Fabric) ([]*eskip.Route, error) {
 		})
 		log.Debugf("fabsvc host=%s svc=%s portName=%s, portNumber=%d", host, svcName, svcPortName, svcPortNumber)
 
-		routes = append(routes, createRoutes(fg, false, -1, -1, "", host, lbAlgorithm, endpoints, adminArgs, allowedOrigins)...)
+		routes = append(routes, fdc.createRoutes(fg, false, -1, -1, "", host, lbAlgorithm, endpoints, adminArgs, allowedOrigins)...)
 
 	}
 
 	// TODO(sszuecs): make sure errors are reported
-	// fmt.Errorf("failed to convert fabricgateway %s/%s: %v", fg.Metadata.Namespace, fg.Metadata.Name, err)
+	// Do we have errors here that we need to report and skip routes creation?
 
+	// TODO(sszuecs): clean this up
 	fd, err := os.Create("/tmp/foo.eskip")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to convert fabricgateway %s/%s: %w", fg.Metadata.Namespace, fg.Metadata.Name, err)
 	}
 	defer fd.Close()
-
 	eskip.Fprint(fd, eskip.PrettyPrintInfo{Pretty: true, IndentStr: "\t"}, routes...)
 
 	return routes, nil
@@ -610,7 +759,7 @@ func calculateTraffic(trs []*zv1.ActualTraffic) (map[string]float64, int) {
 	return weightsMap, noopCount
 }
 
-func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, noopCount int, ridSuffix, host, lbAlgorithm string, endpoints []string, adminArgs, allowedOrigins []interface{}) []*eskip.Route {
+func (fdc *FabricDataClient) createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, noopCount int, ridSuffix, host, lbAlgorithm string, endpoints []string, adminArgs, allowedOrigins []interface{}) []*eskip.Route {
 	routes := make([]*eskip.Route, 0)
 
 	be := ""
@@ -633,12 +782,12 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 
 	if !hostGlobalRouteDone {
 		// 404 route per host
-		r404 := create404Route(create404RouteID(fg, host), host, defaultScopePrivileges)
+		r404 := fdc.create404Route(create404RouteID(fg, host), host, defaultScopePrivileges)
 		routes = append(routes, r404)
 
 		// reject plain http per host with 400, but not for internal routes
 		if !strings.HasSuffix(host, ".cluster.local") {
-			reject400 := createRejectRoute(createRejectRouteID(fg, host), host, defaultScopePrivileges)
+			reject400 := fdc.createRejectRoute(createRejectRouteID(fg, host), host, defaultScopePrivileges)
 			routes = append(routes, reject400)
 		}
 	}
@@ -658,7 +807,7 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 
 			allowedServices := decideAllowedServices(fg.Spec.AllowList, m.AllowList)
 			if len(allowedServices) > 0 || allowedServices == nil {
-				r := createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, fp.Path, ridSuffix)
+				r := fdc.createServiceRoute(m, eskipBackend, allowedOrigins, allowedServicesToFilterArgs(allowedServices), privs, fg.Metadata.Name, fg.Metadata.Namespace, host, fp.Path, ridSuffix)
 				applyPath(r, fp)
 				applyCompression(r, fg.Spec.Compression)
 				applyStaticResponse(r, m.Response)
@@ -669,7 +818,7 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 
 				// ratelimit overrrides require separated routes with predicates.JWTPayloadAllKVName
 				if m.Ratelimit != nil && len(m.Ratelimit.Target) > 0 {
-					routes = append(routes, createRatelimitRoutes(r, m, fg.Metadata.Name, fp.Path)...)
+					routes = append(routes, fdc.createRatelimitRoutes(r, m, fg.Metadata.Name, fp.Path)...)
 				}
 			}
 
@@ -678,9 +827,9 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 				usersAllowed := make([]interface{}, 0, 2*len(m.EmployeeAccess.UserList))
 				sort.Strings(m.EmployeeAccess.UserList)
 				for _, u := range m.EmployeeAccess.UserList {
-					usersAllowed = append(usersAllowed, uidKey, u)
+					usersAllowed = append(usersAllowed, defaultUidKey, u)
 				}
-				rea := createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, fp.Path, ridSuffix)
+				rea := fdc.createEmployeeAccessRoute(m, eskipBackend, allowedOrigins, usersAllowed, m.EmployeeAccess.Type, fg.Metadata.Name, fg.Metadata.Namespace, host, fp.Path, ridSuffix)
 				applyPath(rea, fp)
 				applyCompression(rea, fg.Spec.Compression)
 				applyStaticResponse(rea, m.Response)
@@ -692,7 +841,7 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 			// routes to support x-fabric-admins
 			if len(adminArgs) != 0 {
 				// TODO(sszuecs): currently fabric would also do applyStaticResponse in case we have it for the route, let's discuss if it makes sense. https://github.com/zalando-incubator/fabric-gateway/pull/64 says it does make sense, because admins want to try that the static response is in place.
-				ra := createAdminRoute(eskipBackend, createAdminRouteID(fg, host, fp.Path)+ridSuffix, host, fp.Path, m.Method, adminArgs, allowedOrigins)
+				ra := fdc.createAdminRoute(eskipBackend, createAdminRouteID(fg, host, fp.Path)+ridSuffix, host, fp.Path, m.Method, adminArgs, allowedOrigins)
 				applyPath(ra, fp)
 				applyCompression(ra, fg.Spec.Compression)
 				applyStaticResponse(ra, m.Response)
@@ -710,7 +859,7 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 				corsMethods = corsMethods + ", OPTIONS"
 			}
 			corsAllowedHeaders := strings.Join(fg.Spec.Cors.AllowedHeaders, ", ")
-			cr := createCorsRoute(rID, host, fp.Path, corsMethods, corsAllowedHeaders, methods, allowedOrigins)
+			cr := fdc.createCorsRoute(rID, host, fp.Path, corsMethods, corsAllowedHeaders, methods, allowedOrigins)
 			applyPath(cr, fp)
 			applyTraffic(cr, trafficParam)
 			applyNoops(cr, noopCount)
@@ -720,8 +869,8 @@ func createRoutes(fg *Fabric, hostGlobalRouteDone bool, trafficParam float64, no
 	return routes
 }
 
-func create404Route(rid, host string, privs []interface{}) *eskip.Route {
-	return &eskip.Route{
+func (fdc *FabricDataClient) create404Route(rid, host string, privs []interface{}) *eskip.Route {
+	r := &eskip.Route{
 		Id: rid,
 		Predicates: []*eskip.Predicate{
 			{
@@ -738,33 +887,30 @@ func create404Route(rid, host string, privs []interface{}) *eskip.Route {
 				},
 			},
 		},
-		Filters: []*eskip.Filter{
-			{
-				Name: filters.OAuthTokeninfoAllScopeName,
-				Args: privs,
-			}, {
-				Name: filters.UnverifiedAuditLogName,
-				Args: []interface{}{
-					"sub",
-				},
-			}, {
-				Name: filters.StatusName,
-				Args: []interface{}{
-					404,
-				},
-			}, {
-				Name: filters.InlineContentName,
-				Args: []interface{}{
-					`{"title":"Gateway Rejected","status":404,"detail":"Gateway Route Not Matched"}`,
-				},
-			},
-		},
+		Filters:     append(fdc.checkCommonScopeFilter, fdc.logServiceFilter...),
 		BackendType: eskip.ShuntBackend,
 	}
+
+	r.Filters = append(r.Filters,
+		&eskip.Filter{
+			Name: filters.StatusName,
+			Args: []interface{}{
+				404,
+			},
+		},
+		&eskip.Filter{
+			Name: filters.InlineContentName,
+			Args: []interface{}{
+				`{"title":"Gateway Rejected","status":404,"detail":"Gateway Route Not Matched"}`,
+			},
+		},
+	)
+
+	return r
 }
 
-func createRejectRoute(rid, host string, privs []interface{}) *eskip.Route {
-	return &eskip.Route{
+func (fdc *FabricDataClient) createRejectRoute(rid, host string, privs []interface{}) *eskip.Route {
+	r := &eskip.Route{
 		Id: rid,
 		Predicates: []*eskip.Predicate{
 			{
@@ -786,32 +932,29 @@ func createRejectRoute(rid, host string, privs []interface{}) *eskip.Route {
 				},
 			},
 		},
-		Filters: []*eskip.Filter{
-			{
-				Name: filters.OAuthTokeninfoAllScopeName,
-				Args: privs,
-			}, {
-				Name: filters.UnverifiedAuditLogName,
-				Args: []interface{}{
-					"sub",
-				},
-			}, {
-				Name: filters.StatusName,
-				Args: []interface{}{
-					400,
-				},
-			}, {
-				Name: filters.InlineContentName,
-				Args: []interface{}{
-					`{"title":"Gateway Rejected","status":400,"detail":"TLS is required","type":"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https"}`,
-				},
-			},
-		},
+		Filters:     append(fdc.checkCommonScopeFilter, fdc.logServiceFilter...),
 		BackendType: eskip.ShuntBackend,
 	}
+
+	r.Filters = append(r.Filters,
+		&eskip.Filter{
+			Name: filters.StatusName,
+			Args: []interface{}{
+				400,
+			},
+		},
+		&eskip.Filter{
+			Name: filters.InlineContentName,
+			Args: []interface{}{
+				`{"title":"Gateway Rejected","status":400,"detail":"TLS is required","type":"https://cloud.docs.zalando.net/howtos/ingress/#redirect-http-to-https"}`,
+			},
+		},
+	)
+
+	return r
 }
 
-func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, userList []interface{}, accessType, name, namespace, host, path, ridSuffix string) *eskip.Route {
+func (fdc *FabricDataClient) createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, userList []interface{}, accessType, name, namespace, host, path, ridSuffix string) *eskip.Route {
 	r := &eskip.Route{
 		Id:     createRouteID("fg_eaccess", name, namespace, host, path, m.Method) + ridSuffix,
 		Method: strings.ToUpper(m.Method),
@@ -823,28 +966,13 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 				},
 			},
 		},
-		Filters: []*eskip.Filter{
-			{
-				// oauthTokeninfoAnyKV(realm", "/employees")
-				Name: filters.OAuthTokeninfoAnyKVName,
-				Args: checkEmployeeFilterArgs,
-			},
-			{
-				// oauthTokeninfoAllScope("uid")
-				Name: filters.OAuthTokeninfoAllScopeName,
-				Args: checkCommonScopeFilterArgs,
-			},
-			{
-				// unverifiedAuditLog("sub")
-				Name: filters.UnverifiedAuditLogName,
-				Args: logCommonKeyFilterArgs,
-			},
-		},
+		Filters:     append(fdc.checkEmployeeFilter, fdc.checkCommonScopeFilter...),
 		BackendType: eskipBackend.Type,
 		Backend:     eskipBackend.backend,
 		LBAlgorithm: eskipBackend.lbAlgorithm,
 		LBEndpoints: eskipBackend.lbEndpoints,
 	}
+	r.Filters = append(r.Filters, fdc.logServiceFilter...)
 
 	// add optional ratelimit only default ratelimit
 	if m.Ratelimit != nil {
@@ -870,28 +998,15 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 					),
 					m.Ratelimit.DefaultRate,
 					m.Ratelimit.Period,
-					clusterClientRatelimitHeader,
+					fdc.clusterClientRatelimitHeader,
 				},
 			},
 		)
 	}
 
 	// add rest filters
-	r.Filters = append(r.Filters,
-		[]*eskip.Filter{
-			{
-				// flowId("reuse")
-				Name: filters.FlowIdName,
-				Args: []interface{}{
-					flowid.ReuseParameterValue,
-				},
-			},
-			{
-				// forwardToken("X-TokenInfo-Forward", "uid", "realm")
-				Name: filters.ForwardTokenName,
-				Args: forwardTokenEmployeeFilterArgs,
-			},
-		}...)
+	r.Filters = append(r.Filters, fdc.flowIDFilter...)
+	r.Filters = append(r.Filters, fdc.forwardTokenEmployeeFilter...)
 
 	// optional cors
 	if len(allowedOrigins) > 0 {
@@ -910,20 +1025,14 @@ func createEmployeeAccessRoute(m *FabricMethod, eskipBackend *eskipBackend, allo
 	switch accessType {
 	case "allow_all":
 		// allow all
-		r.Predicates = append(r.Predicates, &eskip.Predicate{
-			Name: predicates.JWTPayloadAllKVName,
-			Args: checkUserRealmPredicateArgs,
-		})
+		r.Predicates = append(r.Predicates, fdc.userRealmPredicates...)
 	case "allow_list":
 		r.Predicates = append(r.Predicates, &eskip.Predicate{
-			Name: predicates.JWTPayloadAnyKVName,
+			Name: fdc.userListPredicateName,
 			Args: userList,
 		})
 	case "deny_all":
-		r.Predicates = append(r.Predicates, &eskip.Predicate{
-			Name: predicates.JWTPayloadAllKVName,
-			Args: checkUserRealmPredicateArgs,
-		})
+		r.Predicates = append(r.Predicates, fdc.userRealmPredicates...)
 		// no need to process filters, reset filters and set backend to shunt
 		r.Filters = []*eskip.Filter{
 			{
@@ -1038,7 +1147,7 @@ func applyCommonPredicates(r *eskip.Route, host string) {
 	}
 }
 
-func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path, ridSuffix string) *eskip.Route {
+func (fdc *FabricDataClient) createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrigins, allowedServices, privs []interface{}, name, namespace, host, path, ridSuffix string) *eskip.Route {
 	r := &eskip.Route{
 		Id:     createRouteID("fg", name, namespace, host, path, m.Method) + ridSuffix,
 		Method: strings.ToUpper(m.Method),
@@ -1050,18 +1159,11 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 				},
 			},
 		},
-		Filters: []*eskip.Filter{
-			{
-				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-				Name: filters.OAuthTokeninfoAnyKVName,
-				Args: checkEmployeeOrServiceFilterArgs,
-			},
-			{
-				// oauthTokeninfoAllScope("uid", "foo.write")
-				Name: filters.OAuthTokeninfoAllScopeName,
-				Args: privs,
-			},
-		},
+		Filters: append(fdc.checkEmployeeOrServiceFilter, &eskip.Filter{
+			// oauthTokeninfoAllScope("uid", "foo.write")
+			Name: fdc.checkCommonScopeFilterName,
+			Args: privs,
+		}),
 		BackendType: eskipBackend.Type,
 		Backend:     eskipBackend.backend,
 		LBAlgorithm: eskipBackend.lbAlgorithm,
@@ -1073,19 +1175,13 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 		// oauthTokeninfoAnyKV("sub", "my-app1", "sub", "my-app2")
 		r.Filters = append(r.Filters,
 			&eskip.Filter{
-				Name: filters.OAuthTokeninfoAnyKVName,
+				Name: fdc.checkServiceFilterName,
 				Args: allowedServices,
 			},
 		)
 	}
 
-	r.Filters = append(r.Filters,
-		&eskip.Filter{
-			// unverifiedAuditLog("sub")
-			Name: filters.UnverifiedAuditLogName,
-			Args: logCommonKeyFilterArgs,
-		},
-	)
+	r.Filters = append(r.Filters, fdc.logServiceFilter...)
 
 	// add optional ratelimit (default ratelimit here, overrides later below adding new routes)
 	if m.Ratelimit != nil {
@@ -1111,28 +1207,15 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 					),
 					m.Ratelimit.DefaultRate,
 					m.Ratelimit.Period,
-					clusterClientRatelimitHeader,
+					fdc.clusterClientRatelimitHeader,
 				},
 			},
 		)
 	}
 
 	// add rest filters
-	r.Filters = append(r.Filters,
-		[]*eskip.Filter{
-			{
-				// flowId("reuse")
-				Name: filters.FlowIdName,
-				Args: []interface{}{
-					flowid.ReuseParameterValue,
-				},
-			},
-			{
-				// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
-				Name: filters.ForwardTokenName,
-				Args: forwardTokenFilterArgs,
-			},
-		}...)
+	r.Filters = append(r.Filters, fdc.flowIDFilter...)
+	r.Filters = append(r.Filters, fdc.forwardTokenServiceFilter...)
 
 	// optional cors
 	if len(allowedOrigins) > 0 {
@@ -1147,10 +1230,11 @@ func createServiceRoute(m *FabricMethod, eskipBackend *eskipBackend, allowedOrig
 
 	applyCommonPredicates(r, host)
 
+	println("END of createServiceRoute:", len(r.Filters), len(r.Predicates))
 	return r
 }
 
-func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) []*eskip.Route {
+func (fdc *FabricDataClient) createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) []*eskip.Route {
 	routes := make([]*eskip.Route, 0, len(m.Ratelimit.Target))
 
 	for i, rTarget := range m.Ratelimit.Target {
@@ -1158,12 +1242,9 @@ func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) [
 		rr.Id = fmt.Sprintf("%s%d", rr.Id, i)
 
 		// add predicate to match client application
-		rr.Predicates = append(rr.Predicates,
-			&eskip.Predicate{
-				Name: predicates.JWTPayloadAllKVName,
-				Args: append(logCommonKeyFilterArgs, rTarget.UID),
-			},
-		)
+		p := *fdc.serviceUidSelectorPredicateTemplate
+		p.Args = append(p.Args, rTarget.UID)
+		rr.Predicates = append(rr.Predicates, &p)
 
 		// find and replace ratelimit: type, group, rate. period stays the same
 		for j := range rr.Filters {
@@ -1190,7 +1271,7 @@ func createRatelimitRoutes(r *eskip.Route, m *FabricMethod, name, path string) [
 
 }
 
-func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method string, adminsArgs, allowedOrigins []interface{}) *eskip.Route {
+func (fdc *FabricDataClient) createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method string, adminsArgs, allowedOrigins []interface{}) *eskip.Route {
 	rr := &eskip.Route{
 		Id:          routeID + "_" + strings.ToLower(method),
 		BackendType: eskipBackend.Type,
@@ -1203,46 +1284,26 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 				Name: predicates.WeightName,
 				Args: []interface{}{5},
 			},
-			{
-				Name: predicates.JWTPayloadAllKVName,
-				Args: checkUserRealmPredicateArgs,
-			},
-			{
-				Name: predicates.JWTPayloadAnyKVName,
-				Args: adminsArgs,
-			},
 		},
-		Filters: []*eskip.Filter{
-			{
-				// TODO(sszuecs): drop service realm for employees
-				// oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-				Name: filters.OAuthTokeninfoAnyKVName,
-				Args: checkEmployeeOrServiceFilterArgs,
-			}, {
+		Filters: append(fdc.checkEmployeeOrServiceFilter,
+			&eskip.Filter{
 				// enableAccessLog(2, 4, 5)
 				Name: filters.EnableAccessLogName,
 				Args: []interface{}{2, 4, 5},
-			}, {
-				// oauthTokeninfoAllScope("uid")
-				Name: filters.OAuthTokeninfoAllScopeName,
-				Args: checkCommonScopeFilterArgs,
-			}, {
-				// unverifiedAuditLog(uidKey)
-				Name: filters.UnverifiedAuditLogName,
-				Args: []interface{}{
-					uidKey,
-				},
-			}, {
-				// flowId("reuse")
-				Name: filters.FlowIdName,
-				Args: []interface{}{flowid.ReuseParameterValue},
-			}, {
-				// forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
-				Name: filters.ForwardTokenName,
-				Args: forwardTokenFilterArgs,
-			},
-		},
+			}),
 	}
+
+	rr.Filters = append(rr.Filters, fdc.checkCommonScopeFilter...)
+	rr.Filters = append(rr.Filters, fdc.logUserFilter...)
+	rr.Filters = append(rr.Filters, fdc.flowIDFilter...)
+	rr.Filters = append(rr.Filters, fdc.forwardTokenServiceFilter...)
+
+	rr.Predicates = append(rr.Predicates, fdc.userRealmPredicates...)
+	rr.Predicates = append(rr.Predicates, &eskip.Predicate{
+		Name: fdc.userListPredicateName,
+		Args: adminsArgs,
+	})
+
 	if len(allowedOrigins) > 0 {
 		rr.Filters = append(rr.Filters, &eskip.Filter{
 			// corsOrigin("https://example.org", "https://example.com")
@@ -1256,7 +1317,7 @@ func createAdminRoute(eskipBackend *eskipBackend, routeID, host, path, method st
 	return rr
 }
 
-func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string, methods []string, allowedOrigins []interface{}) *eskip.Route {
+func (fdc *FabricDataClient) createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string, methods []string, allowedOrigins []interface{}) *eskip.Route {
 	r := &eskip.Route{
 		Id:          routeID,
 		BackendType: eskip.ShuntBackend,
@@ -1272,25 +1333,26 @@ func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string
 				//status(204)
 				Name: filters.StatusName,
 				Args: []interface{}{204},
-			}, {
-				// flowId("reuse")
-				Name: filters.FlowIdName,
-				Args: []interface{}{flowid.ReuseParameterValue},
-			}, {
-				// corsOrigin("https://example.org", "https://example.com")
-				Name: filters.CorsOriginName,
-				Args: allowedOrigins,
-			}, {
-				// appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS")
-				Name: filters.AppendResponseHeaderName,
-				Args: stringToEmptyInterface([]string{"Access-Control-Allow-Methods", corsMethods}),
-			}, {
-				// appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid")
-				Name: filters.AppendResponseHeaderName,
-				Args: stringToEmptyInterface([]string{"Access-Control-Allow-Headers", corsAllowedHeaders}),
 			},
 		},
 	}
+	r.Filters = append(r.Filters, fdc.flowIDFilter...)
+	r.Filters = append(r.Filters,
+		&eskip.Filter{ // corsOrigin("https://example.org", "https://example.com")
+			Name: filters.CorsOriginName,
+			Args: allowedOrigins,
+		},
+		&eskip.Filter{
+			// appendResponseHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS")
+			Name: filters.AppendResponseHeaderName,
+			Args: stringToEmptyInterface([]string{"Access-Control-Allow-Methods", corsMethods}),
+		},
+		&eskip.Filter{
+			// appendResponseHeader("Access-Control-Allow-Headers", "authorization, ot-tracer-sampled, ot-tracer-spanid, ot-tracer-traceid")
+			Name: filters.AppendResponseHeaderName,
+			Args: stringToEmptyInterface([]string{"Access-Control-Allow-Headers", corsAllowedHeaders}),
+		},
+	)
 
 	applyCommonPredicates(r, host)
 	return r
@@ -1299,7 +1361,7 @@ func createCorsRoute(routeID, host, path, corsMethods, corsAllowedHeaders string
 func (fdc *FabricDataClient) convert(fgs []*Fabric) ([]*eskip.Route, error) {
 	routes := make([]*eskip.Route, 0, len(fgs))
 	for _, fg := range fgs {
-		r, err := convertOne(fg)
+		r, err := fdc.convertOne(fg)
 		if err != nil {
 			log.Errorf("Ignore: %v", err)
 			continue

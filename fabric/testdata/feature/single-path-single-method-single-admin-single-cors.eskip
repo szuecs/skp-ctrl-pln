@@ -5,7 +5,7 @@ fg_404_default_simplest_with_cors_simplest_example_org__: HostAny("simplest.exam
   -> inlineContent("{\"title\":\"Gateway Rejected\",\"status\":404,\"detail\":\"Gateway Route Not Matched\"}")
   -> <shunt>;
 
-fg_admin_default_simplest_with_cors_simplest_example_org__resources__get: Path("/resources") && HostAny("simplest.example.org", "simplest.example.org:443") && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAllKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "bmooney")
+fg_admin_default_simplest_with_cors_simplest_example_org__resources__get: Path("/resources") && HostAny("simplest.example.org", "simplest.example.org:443") && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(5) && JWTPayloadAnyKV("https://identity.zalando.com/realm", "users") && JWTPayloadAnyKV("https://identity.zalando.com/managed-id", "bmooney")
   -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
   -> enableAccessLog(2, 4, 5)
   -> oauthTokeninfoAllScope("uid")
