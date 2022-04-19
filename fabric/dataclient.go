@@ -176,12 +176,6 @@ type Options struct {
 	LogUserFilter                string
 	FlowIDFilter                 string
 
-	CheckEmployeeFilterArgs          []interface{}
-	CheckServiceFilterArgs           []interface{}
-	CheckEmployeeOrServiceFilterArgs []interface{}
-	CheckCommonScopeFilterArgs       []interface{}
-	LogCommonKeyFilterArgs           []interface{}
-
 	// ClusterClientRatelimitHeader is used for identifying a
 	// client in a given request
 	ClusterClientRatelimitHeader string
@@ -384,7 +378,7 @@ func (c *clusterClient) loadFabricgateways() ([]*Fabric, error) {
 
 func configureFilters(s string, defaultFilter *eskip.Filter) []*eskip.Filter {
 	if s == "" {
-		log.Infof("configureFilters fallback to default %s", defaultFilter)
+		log.Debugf("configureFilters fallback to default %s", defaultFilter)
 		return []*eskip.Filter{defaultFilter}
 	}
 	target, err := eskip.ParseFilters(s)
