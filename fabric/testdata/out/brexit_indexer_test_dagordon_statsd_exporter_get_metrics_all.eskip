@@ -1,9 +1,0 @@
-kube_default__brexit_indexer_test_dagordon_statsd_exporter_get_metrics_all__brexit_indexer_test_dagordon_statsd_exporter_smart_product_platform_test_zalan_do____brexit_indexer_test_dagordon_statsd_exporter: Path("/metrics") && Host(/^(brexit-indexer-test-dagordon-statsd-exporter[.]smart-product-platform-test[.]zalan[.]do[.]?(:[0-9]+)?)$/) && Method("GET") && Header("X-Forwarded-Proto", "https") && Weight(3)
-  -> enableAccessLog(4, 5)
-  -> lifo(30000, 50000, "3s")
-  -> oauthTokeninfoAnyKV("realm", "/services", "realm", "/employees")
-  -> unverifiedAuditLog("sub")
-  -> oauthTokeninfoAllScope("uid")
-  -> flowId("reuse")
-  -> forwardToken("X-TokenInfo-Forward", "uid", "scope", "realm")
-  -> "http://10.2.19.207:9102";
